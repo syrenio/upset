@@ -799,6 +799,8 @@ function UpSet() {
       return subSets;
     }
 
+
+
     function updateSubsetRows(subsetRows, setScale) {
 
         var backgrounds = subsetRows.select(".gBackgroundRect").selectAll(".backgroundRect").data(function (d) {
@@ -2037,14 +2039,27 @@ function UpSet() {
             return d.data.type === ROW_TYPE.SUBSET;
         })
 
-        // decorate subset rows
-        updateSubsetRows(subSetRows, setScale);
+        function getGroupRows(){
+            return allRows.filter(function (d, i) {
+                if (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE)
+                    return true;
+                return false;
+            });
+        }
 
-        var groupRows = allRows.filter(function (d, i) {
-            if (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE)
-                return true;
-            return false;
-        })
+        // decorate subset rows
+        if(window.Powerset){
+            // window.Powerset.updateSubsetRows(subSetRows,setScale);
+            var psGroupRows = getGroupRows();
+            window.Powerset.updateGroupRows(psGroupRows);
+            window.Powerset.updateSubsetRows(subSetRows,setScale);
+            return;
+        }else{
+            updateSubsetRows(subSetRows, setScale);
+        }
+
+
+        var groupRows = getGroupRows();
 
         // decorate GroupRows
         updateGroupRows(groupRows);

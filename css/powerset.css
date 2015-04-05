@@ -1,0 +1,19 @@
+.syr-powerset{
+	background: red;
+}
+
+.syr-degree{
+	background: green;
+}
+
+.pw-gset{
+	fill: yellow;
+}
+
+.pw-set{
+	fill: blue;
+}
+
+div#bodyVis {
+  height: 100% !important;
+}
