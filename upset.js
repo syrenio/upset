@@ -2039,27 +2039,21 @@ function UpSet() {
             return d.data.type === ROW_TYPE.SUBSET;
         })
 
-        function getGroupRows(){
-            return allRows.filter(function (d, i) {
-                if (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE)
-                    return true;
-                return false;
-            });
-        }
-
         // decorate subset rows
         if(window.Powerset){
-            // window.Powerset.updateSubsetRows(subSetRows,setScale);
-            var psGroupRows = getGroupRows();
-            window.Powerset.updateGroupRows(psGroupRows);
-            window.Powerset.updateSubsetRows(subSetRows,setScale);
+            var ps = new window.Powerset(renderRows,sets);
+            ps.updateGroupRows();
+            ps.updateSubsetRows(setScale);
+
             return;
-        }else{
-            updateSubsetRows(subSetRows, setScale);
         }
+        updateSubsetRows(subSetRows, setScale);
 
-
-        var groupRows = getGroupRows();
+        var groupRows = allRows.filter(function (d, i) {
+            if (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE)
+                return true;
+            return false;
+        });
 
         // decorate GroupRows
         updateGroupRows(groupRows);
