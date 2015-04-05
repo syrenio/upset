@@ -8,10 +8,11 @@
   console.log("powerset registered!");
   window.document.title += " - Powerset!";
 
-  var ps = window.Powerset = function PowerSet(rr, sets) {
+  var ps = window.Powerset = function PowerSet(rr, sets,scale) {
     var svg = d3.select("#bodyVis").select("svg");
     var renderRows = rr;
     var sets = sets;
+    var setScale = scale;
     console.log("init powerset with " + renderRows.length + " renderRows");
     console.log("init powerset with " + sets.length + " sets");
 
@@ -70,50 +71,67 @@
         });
     }
 
-    this.updateGroupRows = function() {
+    this.draw = function() {
       groupRows.forEach(function(group, idx) {
         console.info("groupRow:", group, idx);
       });
 
-      var groupNames = getGroupNames();
-      var setRects = svg.selectAll("rect.pw-gset").data(groupNames).enter();
-      setRects.append("rect")
+      var svgWidth = parseInt(svg.attr("width"), 10);
+
+      var degreeHeight = 600 / groupRows.length;
+      var degreeWidth = svgWidth - 200;
+
+      var setRects = svg.selectAll("rect.pw-gset")
+      setRects.data(groupRows)
+        .enter()
+        .append("rect")
         .attr("class", "pw-gset")
-        .attr("y", function(d, idx) {
-          return 50 + (20 * idx);
-        })
-        .attr("width", 100)
-        .attr("height", 10);
-    };
-
-    this.updateSubsetRows = function(setScale) {
-      var bodyVisWidth = svg[0][0].width.baseVal.value;
-      var bodyVisHeight = svg[0][0].height.baseVal.value;
-
-      var subSetRects = svg.selectAll("rect.pw-set").data(subsetRows).enter();
-      subSetRects.append("rect")
-        .attr("class", "pw-set")
         .attr("x", 200)
         .attr("y", function(d, idx) {
-          return 50 + (20 * idx);
+          return (10 + degreeHeight) * idx;
         })
-        .on("mouseenter", function(d) {
-          console.info(d);
-        })
-        .attr("width", 100)
-        .attr("height", 10);
+        .attr("width", degreeWidth)
+        .attr("height", degreeHeight);
 
 
-      subSetRects.insert("title")
-        .text(function(d) {
-          return d.data.elementName;
-        });
+      updateSubsetRows(setRects,setScale);
+    };
 
-      subsetRows.forEach(function(elm, idx) {
-        // console.info("row:", elm, idx);
-        var data = elm.data;
-        // console.info("degree:", data.nrCombinedSets, data.elementName, " size:", data.setSize);
+    function updateSubsetRows(setRects,setScale) {
+
+      console.warn(setRects);
+      setRects.each(function(d,idx){
+        var g = d3.select(this);
+        var x = parseInt(g.attr("x"),10);
+        var y = parseInt(g.attr("y"),10);
+
+        var height = 20;
+        var width = 20;
+
+        // TODO maybe use subsetRows --> more information
+        var subsets = d.data.subSets;
+
+        subsets.forEach(function(d){ console.log(d)});
+
+        var subSetRects = svg.selectAll("rect.pw-set-"+idx).data(subsets).enter();
+        subSetRects.append("rect")
+          .attr("class", "pw-set pw-set-"+idx)
+          .attr("x", function(d,idx){
+            return x + ((width*2) * idx);
+          })
+          .attr("y", function(d, idx) {
+            return y + height;
+          })
+          .on("mouseenter", function(d) {
+            console.info(d.elementName);
+          })
+          .attr("width", width)
+          .attr("height", height);
+
       });
+
+
+      
     };
 
   };

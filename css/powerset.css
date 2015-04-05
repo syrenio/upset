@@ -7,13 +7,25 @@
 }
 
 .pw-gset{
-	fill: yellow;
+	stroke: black;
+	stroke-opacity: 0.2;
+	fill: transparent;
 }
 
 .pw-set{
+	stroke: blue;
+	fill: transparent;
+}
+
+.pw-set:hover{
 	fill: blue;
+	cursor: pointer;
 }
 
 div#bodyVis {
   height: 100% !important;
+}
+
+div#set-vis-container{
+	height: 100% !important;
 }

@@ -2040,13 +2040,13 @@ function UpSet() {
         })
 
         // decorate subset rows
-        if(window.Powerset){
-            var ps = new window.Powerset(renderRows,sets);
-            ps.updateGroupRows();
-            ps.updateSubsetRows(setScale);
-
-            return;
+        if(window.Powerset){    
+            var ps = new window.Powerset(renderRows,sets,setScale);
+            ps.draw();
+            //ps.updateSubsetRows(setScale);
+            return; // stop with default upset
         }
+
         updateSubsetRows(subSetRows, setScale);
 
         var groupRows = allRows.filter(function (d, i) {
