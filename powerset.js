@@ -10,7 +10,7 @@
 
   $(".header-container").append("<span> Powerset: <input type='checkbox' onclick='window.Powerset.toggle()'></span>");
 
-  var ps = window.Powerset = function PowerSet(rr, sets,scale) {
+  var ps = window.Powerset = function PowerSet(rr, sets, scale) {
     var svg = d3.select("#bodyVis").select("svg");
     var renderRows = rr;
     var sets = sets;
@@ -79,15 +79,16 @@
       });
 
       var svgWidth = parseInt(svg.attr("width"), 10);
+      var svgHeight = parseInt(svg.attr("height"), 10);
 
-      var degreeHeight = 600 / groupRows.length;
+      var degreeHeight = svgHeight / groupRows.length;
       var degreeWidth = svgWidth - 200;
 
       var setRects = svg.selectAll("rect.pw-gset")
       setRects.data(groupRows)
         .enter()
         .append("rect")
-        .attr("class", function(d,idx){
+        .attr("class", function(d, idx) {
           return "pw-gset pw-gset-" + idx;
         })
         .attr("x", 200)
@@ -97,17 +98,29 @@
         .attr("width", degreeWidth)
         .attr("height", degreeHeight);
 
+      svg.selectAll("text.pw-gtext")
+        .data(groupRows)
+        .enter()
+        .append("text")
+        .text(function(d) {
+          return d.data.elementName;
+        })
+        .attr("class", "pw-gtext")
+        .attr("x", 0)
+        .attr("y", function(d, idx) {
+          return 30 + ( (10 + degreeHeight) * idx);
+        });
 
-      updateSubsetRows(setRects,setScale);
+      updateSubsetRows(setRects, setScale);
     };
 
-    function updateSubsetRows(setRects,setScale) {
+    function updateSubsetRows(setRects, setScale) {
 
       console.warn(setRects);
-      setRects.each(function(d,idx){
+      setRects.each(function(d, idx) {
         var g = d3.select(this);
-        var x = parseInt(g.attr("x"),10);
-        var y = parseInt(g.attr("y"),10);
+        var x = parseInt(g.attr("x"), 10);
+        var y = parseInt(g.attr("y"), 10);
 
         var height = 20;
         var width = 20;
@@ -115,13 +128,15 @@
         // TODO maybe use subsetRows --> more information
         var subsets = d.data.subSets;
 
-        subsets.forEach(function(d){ console.log(d)});
+        subsets.forEach(function(d) {
+          console.log(d)
+        });
 
-        var subSetRects = svg.selectAll("rect.pw-set-"+idx).data(subsets).enter();
+        var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets).enter();
         subSetRects.append("rect")
-          .attr("class", "pw-set pw-set-"+idx)
-          .attr("x", function(d,idx){
-            return x + ((width*2) * idx);
+          .attr("class", "pw-set pw-set-" + idx)
+          .attr("x", function(d, idx) {
+            return x + ((width * 2) * idx);
           })
           .attr("y", function(d, idx) {
             return y + height;
@@ -135,7 +150,7 @@
       });
 
 
-      
+
     };
 
   };
@@ -143,7 +158,7 @@
 
   /* OPTIONS */
   ps.active = true;
-  ps.toggle = function(){
+  ps.toggle = function() {
     ps.active = !ps.active;
     console.info("Powerset active: " + ps.active);
     UpSet();

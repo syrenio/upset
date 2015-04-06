@@ -12,6 +12,11 @@
 	fill: transparent;
 }
 
+.pw-gset:hover{
+	stroke-opacity: 1;
+	cursor: pointer;
+}
+
 .pw-set{
 	stroke: blue;
 	fill: transparent;
