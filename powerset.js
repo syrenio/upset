@@ -21,6 +21,12 @@
     var groupRows = getGroupRows();
     var subsetRows = getSubsetRows();
 
+
+    var svgWidth = parseInt(svg.attr("width"), 10);
+    var svgHeight = parseInt(svg.attr("height"), 10);
+    var degreeHeight = svgHeight / groupRows.length;
+    var degreeWidth = svgWidth - 200;
+
     function getGroupRows() {
       return renderRows.filter(function(d, i) {
         if (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE)
@@ -78,11 +84,6 @@
         console.info("groupRow:", group, idx);
       });
 
-      var svgWidth = parseInt(svg.attr("width"), 10);
-      var svgHeight = parseInt(svg.attr("height"), 10);
-
-      var degreeHeight = svgHeight / groupRows.length;
-      var degreeWidth = svgWidth - 200;
 
       var setRects = svg.selectAll("rect.pw-gset")
       setRects.data(groupRows)
@@ -108,13 +109,13 @@
         .attr("class", "pw-gtext")
         .attr("x", 0)
         .attr("y", function(d, idx) {
-          return 30 + ( (10 + degreeHeight) * idx);
+          return 30 + ((10 + degreeHeight) * idx);
         });
 
-      updateSubsetRows(setRects, setScale);
+      drawSubsets(setRects, setScale);
     };
 
-    function updateSubsetRows(setRects, setScale) {
+    function drawSubsets(setRects, setScale) {
 
       console.warn(setRects);
       setRects.each(function(d, idx) {
@@ -122,8 +123,8 @@
         var x = parseInt(g.attr("x"), 10);
         var y = parseInt(g.attr("y"), 10);
 
-        var height = 20;
-        var width = 20;
+        var height = 30;
+        var width = 30;
 
         // TODO maybe use subsetRows --> more information
         var subsets = d.data.subSets;
@@ -136,10 +137,14 @@
         subSetRects.append("rect")
           .attr("class", "pw-set pw-set-" + idx)
           .attr("x", function(d, idx) {
-            return x + ((width * 2) * idx);
+            var val = ((width * 2) * idx);
+            var row = parseInt(val / degreeWidth,10);
+            return x + (val % degreeWidth);
           })
           .attr("y", function(d, idx) {
-            return y + height;
+            var val = ((height * 2) * idx);
+            var row = parseInt(val / degreeWidth,10);
+            return y + height + (row * height);
           })
           .on("mouseenter", function(d) {
             console.info(d.elementName, d.setSize);
