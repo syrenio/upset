@@ -8,6 +8,8 @@
   console.log("powerset registered!");
   window.document.title += " - Powerset!";
 
+  $(".header-container").append("<span> Powerset: <input type='checkbox' onclick='window.Powerset.toggle()'></span>");
+
   var ps = window.Powerset = function PowerSet(rr, sets,scale) {
     var svg = d3.select("#bodyVis").select("svg");
     var renderRows = rr;
@@ -85,7 +87,9 @@
       setRects.data(groupRows)
         .enter()
         .append("rect")
-        .attr("class", "pw-gset")
+        .attr("class", function(d,idx){
+          return "pw-gset pw-gset-" + idx;
+        })
         .attr("x", 200)
         .attr("y", function(d, idx) {
           return (10 + degreeHeight) * idx;
@@ -123,7 +127,7 @@
             return y + height;
           })
           .on("mouseenter", function(d) {
-            console.info(d.elementName);
+            console.info(d.elementName, d.setSize);
           })
           .attr("width", width)
           .attr("height", height);
@@ -134,6 +138,15 @@
       
     };
 
+  };
+
+
+  /* OPTIONS */
+  ps.active = true;
+  ps.toggle = function(){
+    ps.active = !ps.active;
+    console.info("Powerset active: " + ps.active);
+    UpSet();
   };
 
 })(window);

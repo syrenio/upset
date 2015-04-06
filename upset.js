@@ -2040,7 +2040,7 @@ function UpSet() {
         })
 
         // decorate subset rows
-        if(window.Powerset){    
+        if(window.Powerset && window.Powerset.active === true){    
             var ps = new window.Powerset(renderRows,sets,setScale);
             ps.draw();
             //ps.updateSubsetRows(setScale);
