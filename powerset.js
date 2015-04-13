@@ -21,7 +21,9 @@
     var groupRows = getGroupRows();
     var subsetRows = getSubsetRows();
 
+    var visContainer = $(document.getElementById("set-vis-container")).height();
 
+    svg.attr("height",parseInt(visContainer,10));
     var svgWidth = parseInt(svg.attr("width"), 10);
     var svgHeight = parseInt(svg.attr("height"), 10);
     var degreeHeight = svgHeight / groupRows.length;
@@ -101,7 +103,8 @@
 
       //debugger
       //console.error(allSizes);
-      var sizeMulti = svgHeight / allSizes;
+      var groupPadding = 10;
+      var sizeMulti = (svgHeight - (groupRows.length * groupPadding)) / allSizes;
 
       var setRects = svg.selectAll("rect.pw-gset")
       setRects.data(groupRows)
@@ -115,13 +118,16 @@
           var startpoint = 10;
           var preRows = 0;
           for(var i = idx-1; i >= 0; i--){
-            preRows += (sizes[i] * sizeMulti);
+            preRows += (sizes[i] * sizeMulti) + groupPadding;
           }
           return startpoint + preRows;
         })
         .attr("width", degreeWidth)
         .attr("height", function(d,idx){
           return (sizes[idx] * sizeMulti);
+        })
+        .on("click",function(d,idx){
+          console.info(d.data.elementName, sizes[idx]);
         });
 
       svg.selectAll("text.pw-gtext")
@@ -134,10 +140,15 @@
         .attr("class", "pw-gtext")
         .attr("x", 0)
         .attr("y", function(d, idx) {
-          return 30 + ((10 + degreeHeight) * idx);
+          var startpoint = 10;
+          var preRows = 0;
+          for(var i = idx-1; i >= 0; i--){
+            preRows += (sizes[i] * sizeMulti) + groupPadding;
+          }
+          return 30 + startpoint + preRows;
         });
 
-      //drawSubsets(setRects, setScale);
+      drawSubsets(setRects, setScale);
     };
 
     function drawSubsets(setRects, setScale) {
@@ -147,33 +158,45 @@
         var g = d3.select(this);
         var x = parseInt(g.attr("x"), 10);
         var y = parseInt(g.attr("y"), 10);
+        var gWidth = parseInt(g.attr("width"), 10);
+        var gHeight = parseInt(g.attr("height"), 10);
 
-        var height = 30;
-        var width = 30;
 
         // TODO maybe use subsetRows --> more information
         var subsets = d.data.subSets;
+
+        if(ps.showSubsetWithoutData){
+          subsets = subsets.filter(function(d){
+            return d.setSize > 0;
+          })
+        }
+
+        //var height = 30;
+        //var width = 30;
+        var width = (gWidth-(10*(subsets.length-1)))/subsets.length;
+        var height = (gHeight);
+
+
 
         var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets).enter();
         subSetRects.append("rect")
           .attr("class", "pw-set pw-set-" + idx)
           .attr("x", function(d, idx) {
-            var val = ((width * 2) * idx);
-            var row = parseInt(val / degreeWidth, 10);
+            var val = (width * idx) + (10 * idx);
             return x + (val % degreeWidth);
           })
           .attr("y", function(d, idx) {
-            var val = ((height * 2) * idx);
+            var val = ((width) * idx);
             var row = parseInt(val / degreeWidth, 10);
-            return y + height + (row * height);
+            return y + (row * height);
           })
-          .on("mouseenter", function(d) {
-            //console.info(d.elementName, d.setSize);
+          .on("click", function(d) {
+            console.info(d.elementName, d.setSize);
           })
           .attr("width", width)
           .attr("height", height);
 
-        if(ps.showTexts){
+        if(ps.showSubsetTexts){
           var subSetTexts = svg.selectAll("text.pw-set-text-"+ idx).data(subsets).enter();
           subSetTexts.append("text")
             .attr("class", "pw-set-text pw-set-text-" + idx)
@@ -201,7 +224,8 @@
 
   /* OPTIONS */
   ps.active = true;
-  ps.showTexts = true;
+  ps.showSubsetTexts = false;
+  ps.showSubsetWithoutData = true;
   ps.toggle = function() {
     ps.active = !ps.active;
     console.info("Powerset active: " + ps.active);

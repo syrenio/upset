@@ -34,3 +34,7 @@ div#bodyVis {
 div#set-vis-container{
 	height: 100% !important;
 }
+
+text.pw-gtext{
+	-webkit-user-select: none;
+}
