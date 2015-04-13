@@ -8,7 +8,7 @@
   console.log("powerset registered!");
   window.document.title += " - Powerset!";
 
-  $(".header-container").append("<span> Powerset: <input type='checkbox' onclick='window.Powerset.toggle()'></span>");
+  $(".header-container").append("<span> Powerset: <input type='checkbox' checked='checked' onclick='window.Powerset.toggle()'></span>");
 
   var ps = window.Powerset = function PowerSet(rr, sets, scale) {
     var svg = d3.select("#bodyVis").select("svg");
@@ -79,11 +79,29 @@
         });
     }
 
+    // better with map-reduce
+    function getSizeOfGroup(group) {
+      var size = 0;
+      group.data.subSets.forEach(function(itm,idx){
+        size += itm.setSize;
+      });
+      return size;
+    }
+
     this.draw = function() {
+      var allSizes = 0;
+      var sizes = [];
       groupRows.forEach(function(group, idx) {
-        console.info("groupRow:", group, idx);
+        //console.info("groupRow:", group, idx);
+        var size = getSizeOfGroup(group)
+        //console.info("groupSize: " + idx + ", " + size);
+        allSizes += size;
+        sizes.push(size);
       });
 
+      //debugger
+      //console.error(allSizes);
+      var sizeMulti = svgHeight / allSizes;
 
       var setRects = svg.selectAll("rect.pw-gset")
       setRects.data(groupRows)
@@ -94,10 +112,17 @@
         })
         .attr("x", 200)
         .attr("y", function(d, idx) {
-          return (10 + degreeHeight) * idx;
+          var startpoint = 10;
+          var preRows = 0;
+          for(var i = idx-1; i >= 0; i--){
+            preRows += (sizes[i] * sizeMulti);
+          }
+          return startpoint + preRows;
         })
         .attr("width", degreeWidth)
-        .attr("height", degreeHeight);
+        .attr("height", function(d,idx){
+          return (sizes[idx] * sizeMulti);
+        });
 
       svg.selectAll("text.pw-gtext")
         .data(groupRows)
@@ -112,12 +137,12 @@
           return 30 + ((10 + degreeHeight) * idx);
         });
 
-      drawSubsets(setRects, setScale);
+      //drawSubsets(setRects, setScale);
     };
 
     function drawSubsets(setRects, setScale) {
 
-      console.warn(setRects);
+      //console.warn(setRects);
       setRects.each(function(d, idx) {
         var g = d3.select(this);
         var x = parseInt(g.attr("x"), 10);
@@ -129,32 +154,45 @@
         // TODO maybe use subsetRows --> more information
         var subsets = d.data.subSets;
 
-        subsets.forEach(function(d) {
-          console.log(d)
-        });
-
         var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets).enter();
         subSetRects.append("rect")
           .attr("class", "pw-set pw-set-" + idx)
           .attr("x", function(d, idx) {
             var val = ((width * 2) * idx);
-            var row = parseInt(val / degreeWidth,10);
+            var row = parseInt(val / degreeWidth, 10);
             return x + (val % degreeWidth);
           })
           .attr("y", function(d, idx) {
             var val = ((height * 2) * idx);
-            var row = parseInt(val / degreeWidth,10);
+            var row = parseInt(val / degreeWidth, 10);
             return y + height + (row * height);
           })
           .on("mouseenter", function(d) {
-            console.info(d.elementName, d.setSize);
+            //console.info(d.elementName, d.setSize);
           })
           .attr("width", width)
           .attr("height", height);
 
+        if(ps.showTexts){
+          var subSetTexts = svg.selectAll("text.pw-set-text-"+ idx).data(subsets).enter();
+          subSetTexts.append("text")
+            .attr("class", "pw-set-text pw-set-text-" + idx)
+            .attr("x", function(d, idx) {
+              var val = ((width * 2) * idx);
+              var row = parseInt(val / degreeWidth, 10);
+              return x + (val % degreeWidth);
+            })
+            .attr("y", function(d, idx) {
+              var val = ((height * 2) * idx);
+              var row = parseInt(val / degreeWidth, 10);
+              return y + height + (row * height) + (height/2);
+            })
+            .text(function(d,i){
+              return d.elementName;
+            });
+        }
+
       });
-
-
 
     };
 
@@ -163,6 +201,7 @@
 
   /* OPTIONS */
   ps.active = true;
+  ps.showTexts = true;
   ps.toggle = function() {
     ps.active = !ps.active;
     console.info("Powerset active: " + ps.active);
