@@ -2041,8 +2041,10 @@ function UpSet() {
 
         // decorate subset rows
         if(window.Powerset && window.Powerset.active === true){    
-            var ps = new window.Powerset(renderRows,sets,setScale);
-            ps.draw();
+            if(!window.pwInstance){
+                window.pwInstance = new window.Powerset(ctx, renderRows,sets,setScale);
+            }
+            window.pwInstance.draw();
             //ps.updateSubsetRows(setScale);
             return; // stop with default upset
         }
