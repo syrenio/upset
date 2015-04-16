@@ -38,3 +38,26 @@ div#set-vis-container{
 text.pw-gtext{
 	-webkit-user-select: none;
 }
+
+div.ps-control-panel{
+	background-color: #d9d9d9;
+	width: 180px;
+	height: 100%;
+	float: left;
+}
+
+.elm-by-deg-scale{
+	border-bottom: 1px solid black;
+}
+.elm-by-deg-scale span:last-child{
+	float:right;
+}
+
+.row{
+	margin: 5px;
+}
+
+.row progress{
+	margin-left: 20px;
+	width: 120px;
+}
