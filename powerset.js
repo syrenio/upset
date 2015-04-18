@@ -92,7 +92,8 @@
     };
 
     this.draw = function() {
-      console.log("called draw");
+      var date = new Date();
+      console.log("called draw " + date);
 
       var groupRows = getGroupRows();
       var subsetRows = getSubsetRows();
@@ -166,6 +167,8 @@
 
       drawSubsets(groupRects, setScale);
       drawElementsByDegree();
+
+      createStyle();
     };
 
     function drawSubsets(setRects, setScale) {
@@ -286,6 +289,22 @@
         });
       rows.exit().remove();
 
+    }
+
+    function createStyle(){
+      var pwStyle = $("#pw-style");
+      if(pwStyle.length <= 0){
+        var arrStyles = [{
+          name: ".pw-set",
+          styles: ["fill:#dedede"]
+        }];
+
+        var mapped = arrStyles.map(function(d){
+          return d.name + "{" + d.styles.join(";") + "}";
+        });
+
+        $('head').append('<style id="pw-style">' + mapped.join() + '</style>');
+      }
     }
 
   };
