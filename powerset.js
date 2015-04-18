@@ -8,7 +8,7 @@
   console.log("powerset registered!");
   window.document.title += " - Powerset!";
 
-  $(".header-container").append("<span> Powerset: <input type='checkbox' checked='checked' onclick='window.Powerset.toggle()'></span>");
+  // $(".header-container").append("<span> Powerset: <input type='checkbox' checked='checked' onclick='window.Powerset.toggle()'></span>");
 
   var ps = window.Powerset = function PowerSet(c, rr, s, scale) {
     var svg = d3.select("#bodyVis").select("svg");
@@ -16,6 +16,8 @@
     var renderRows = rr;
     var sets = s;
     var setScale = scale;
+
+    var pwDrawInfo = {};
     // console.log("init powerset with " + renderRows.length + " renderRows");
     // console.log("init powerset with " + sets.length + " sets");
 
@@ -24,7 +26,7 @@
     var controlPanel = $("#ps-control-panel");
 
     function getGroupRows() {
-      function fnCheck(d){
+      function fnCheck(d) {
         return (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE);
       }
       return renderRows.filter(function(d, i) {
@@ -85,7 +87,12 @@
       return size;
     }
 
+    this.clear = function() {
+      $("#ps-control-panel").remove();
+    };
+
     this.draw = function() {
+      console.log("called draw");
 
       var groupRows = getGroupRows();
       var subsetRows = getSubsetRows();
@@ -96,21 +103,21 @@
       svg.attr("width", parseInt(visContainer.width() - 200, 10));
       var svgWidth = parseInt(svg.attr("width"), 10);
       var svgHeight = parseInt(svg.attr("height"), 10);
-      var degreeHeight = svgHeight / groupRows.length;
       ps.degreeWidth = svgWidth - 200;
 
-      var allSizes = 0;
-      var sizes = [];
+      pwDrawInfo.allSizes = 0;
+      pwDrawInfo.sizes = [];
+
       groupRows.forEach(function(group, idx) {
         var size = getSizeOfGroup(group);
-        allSizes += size;
-        sizes.push(size);
+        pwDrawInfo.allSizes += size;
+        pwDrawInfo.sizes.push(size);
       });
 
       //debugger
       //console.error(allSizes);
       var groupPadding = 10;
-      var sizeMulti = (svgHeight - (groupRows.length * groupPadding)) / allSizes;
+      var sizeMulti = (svgHeight - (groupRows.length * groupPadding)) / pwDrawInfo.allSizes;
 
       // TODO: insert <g>
       svg.selectAll("text.pw-gset").remove();
@@ -125,16 +132,16 @@
           var startpoint = 10;
           var preRows = 0;
           for (var i = idx - 1; i >= 0; i--) {
-            preRows += (sizes[i] * sizeMulti) + groupPadding;
+            preRows += (pwDrawInfo.sizes[i] * sizeMulti) + groupPadding;
           }
           return startpoint + preRows;
         })
         .attr("width", ps.degreeWidth)
         .attr("height", function(d, idx) {
-          return (sizes[idx] * sizeMulti);
+          return (pwDrawInfo.sizes[idx] * sizeMulti);
         })
         .on("click", function(d, idx) {
-          console.info(d.data.elementName, sizes[idx], d.data.subSets);
+          console.info(d.data.elementName, pwDrawInfo.sizes[idx]);
         });
       groupRects.exit().remove();
 
@@ -142,7 +149,7 @@
       var gTexts = svg.selectAll("text.pw-gtext").data(groupRows);
       gTexts.enter()
         .append("text")
-        .text(function(d,idx) {
+        .text(function(d, idx) {
           return idx; //d.data.elementName;
         })
         .attr("class", "pw-gtext")
@@ -151,7 +158,7 @@
           var startpoint = 10;
           var preRows = 0;
           for (var i = idx - 1; i >= 0; i--) {
-            preRows += (sizes[i] * sizeMulti) + groupPadding;
+            preRows += (pwDrawInfo.sizes[i] * sizeMulti) + groupPadding;
           }
           return 30 + startpoint + preRows;
         });
@@ -163,6 +170,8 @@
 
     function drawSubsets(setRects, setScale) {
 
+      svg.selectAll("rect.pw-set").remove();
+      svg.selectAll("text.pw-set-text").remove();
       //console.warn(setRects);
       setRects.each(function(d, idx) {
         var g = d3.select(this);
@@ -187,7 +196,7 @@
         var height = (gHeight);
 
         // TODO: insert <g>
-        svg.selectAll("rect.pw-set-"+ idx).remove();
+        svg.selectAll("rect.pw-set-" + idx).remove();
         var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets);
         subSetRects.enter().append("rect")
           .attr("class", "pw-set pw-set-" + idx)
@@ -201,49 +210,52 @@
             return y + (row * height);
           })
           .on("click", function(d) {
-            console.info(d.elementName, d.setSize, d.items);
+            var strNames = d.items.map(function(x){
+              return attributes[0].values[x];
+            });
+            console.info(d.elementName, d.setSize, strNames.join(","));
           })
           .attr("width", width)
           .attr("height", height);
         subSetRects.exit().remove();
 
         if (ps.showSubsetTexts) {
-          svg.selectAll("text.pw-set-text-"+ idx).remove();
+          svg.selectAll("text.pw-set-text-" + idx).remove();
           var subSetTexts = svg.selectAll("text.pw-set-text-" + idx).data(subsets).enter();
           subSetTexts.append("text")
             .attr("class", "pw-set-text pw-set-text-" + idx)
             .attr("x", function(d, idx) {
               var val = (width * idx) + (10 * idx);
               var rectX = x + (val % ps.degreeWidth);
-                return (width/2) + rectX;
+              return (width / 2) + rectX;
             })
             .attr("y", function(d, idx) {
               var val = ((width) * idx);
               var row = parseInt(val / ps.degreeWidth, 10);
               var rectY = y + (row * height);
-                return (height/2) + rectY;
+              return (height / 2) + rectY;
 
             })
-              .attr("text-anchor","middle")
-              .attr("alignment-baseline","middle")
+            .attr("text-anchor", "middle")
+            .attr("alignment-baseline", "middle")
             .text(function(d, i) {
-                return d.elementName;
+              return d.elementName;
             });
         }
       });
     }
 
 
-    function drawSetsBySize(){
+    function drawSetsBySize() {
 
     }
 
-    function drawElementsByDegree(){
+    function drawElementsByDegree() {
       var groupRows = getGroupRows();
 
       var overallSize = groupRows.map(function(d) {
         return d.data.setSize;
-      }).reduce(function(preVal,val,idx){
+      }).reduce(function(preVal, val, idx) {
         return preVal + val;
       });
 
@@ -261,15 +273,17 @@
 
 
       rows.enter()
-          .append("div")
-          .classed({"row":true})
-          .html(function(d,idx){
-            var str = "<input type='checkbox' checked='checked' value='"+idx+"'>";
-            str += "<span>" + idx + "</span>";
-            str += "<progress value='" + (d.data.setSize/overallSize*100) + "' max='100'></progress>";
+        .append("div")
+        .classed({
+          "row": true
+        })
+        .html(function(d, idx) {
+          var str = "<input type='checkbox' checked='checked' value='" + idx + "'>";
+          str += "<span>" + idx + "</span>";
+          str += "<progress value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
 
-            return str;
-          });
+          return str;
+        });
       rows.exit().remove();
 
     }
@@ -277,7 +291,7 @@
   };
 
   /* OPTIONS */
-  ps.active = true;
+  ps.active =  true;
   ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
   ps.toggle = function() {
