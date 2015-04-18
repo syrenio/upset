@@ -112,6 +112,7 @@
       var groupPadding = 10;
       var sizeMulti = (svgHeight - (groupRows.length * groupPadding)) / allSizes;
 
+      // TODO: insert <g>
       svg.selectAll("text.pw-gset").remove();
       var groupRects = svg.selectAll("rect.pw-gset").data(groupRows);
       groupRects.enter()
@@ -153,7 +154,7 @@
             preRows += (sizes[i] * sizeMulti) + groupPadding;
           }
           return 30 + startpoint + preRows;
-        })
+        });
       gTexts.exit().remove();
 
       drawSubsets(groupRects, setScale);
@@ -185,7 +186,7 @@
         var width = (gWidth - (10 * (subsets.length - 1))) / subsets.length;
         var height = (gHeight);
 
-
+        // TODO: insert <g>
         svg.selectAll("rect.pw-set-"+ idx).remove();
         var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets);
         subSetRects.enter().append("rect")
@@ -207,19 +208,24 @@
         subSetRects.exit().remove();
 
         if (ps.showSubsetTexts) {
+          svg.selectAll("text.pw-set-text-"+ idx).remove();
           var subSetTexts = svg.selectAll("text.pw-set-text-" + idx).data(subsets).enter();
           subSetTexts.append("text")
             .attr("class", "pw-set-text pw-set-text-" + idx)
             .attr("x", function(d, idx) {
-              var val = ((width * 2) * idx);
-              var row = parseInt(val / ps.degreeWidth, 10);
-              return x + (val % ps.degreeWidth);
+              var val = (width * idx) + (10 * idx);
+              var rectX = x + (val % ps.degreeWidth);
+                return (width/2) + rectX;
             })
             .attr("y", function(d, idx) {
-              var val = ((height * 2) * idx);
+              var val = ((width) * idx);
               var row = parseInt(val / ps.degreeWidth, 10);
-              return y + height + (row * height) + (height / 2);
+              var rectY = y + (row * height);
+                return (height/2) + rectY;
+
             })
+              .attr("text-anchor","middle")
+              .attr("alignment-baseline","middle")
             .text(function(d, i) {
                 return d.elementName;
             });
@@ -272,7 +278,7 @@
 
   /* OPTIONS */
   ps.active = true;
-  ps.showSubsetTexts = false;
+  ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
   ps.toggle = function() {
     ps.active = !ps.active;

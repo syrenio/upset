@@ -11,11 +11,12 @@
 	stroke-opacity: 0.2;
 	fill: transparent;
 }
-
+/*
 .pw-gset:hover{
 	stroke-opacity: 1;
 	cursor: pointer;
 }
+*/
 
 .pw-set{
 	stroke: blue;
