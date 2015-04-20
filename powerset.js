@@ -3,6 +3,21 @@
 */
 
 (function(window) {
+
+
+  function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16),
+      g: parseInt(result[2], 16),
+      b: parseInt(result[3], 16)
+    } : null;
+  }
+
+  function rgbToHex(o) {
+    return "#" + ((1 << 24) + (o.r << 16) + (o.g << 8) + o.b).toString(16).slice(1);
+  }
+
   //window.Powerset = window.Powerset || {};
   //var ps = window.Powerset;
   console.log("powerset registered!");
@@ -171,6 +186,34 @@
       createStyle();
     };
 
+    function getAttributeInfo(val) {
+      var ignoredSetNames = ["Set Count", "Sets"];
+      var strinfo = ""
+
+      for (var i = attributes.length - 1; i >= 0; i--) {
+        var attr = attributes[i];
+        if (ignoredSetNames.indexOf(attr.name) === -1) {
+          strinfo += attr.name + ":" + attr.values[val] + "  ";
+        }
+      };
+      return strinfo;
+    }
+
+    function getAttributeValue(name, val) {
+      for (var i = attributes.length - 1; i >= 0; i--) {
+        var attr = attributes[i];
+        if (attr.name === name) {
+          return attr.values[val];
+        }
+      }
+    }
+
+    function getRenderRowById(id) {
+      return renderRows.filter(function(d) {
+        return d.data.id === id;
+      })[0];
+    }
+
     function drawSubsets(setRects, setScale) {
 
       svg.selectAll("rect.pw-set").remove();
@@ -202,7 +245,28 @@
         svg.selectAll("rect.pw-set-" + idx).remove();
         var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets);
         subSetRects.enter().append("rect")
-          .attr("class", "pw-set pw-set-" + idx)
+          .attr("class", function(d) {
+            var arrValues = [];
+            for (var i = d.items.length - 1; i >= 0; i--) {
+              var itm = d.items[i];
+              var val = getAttributeValue(Powerset.colorByAttribute, itm);
+              arrValues.push(val);
+            };
+            var addClass = "";
+            if (ctx.summaryStatisticVis.length) {
+              var stats = ctx.summaryStatisticVis.filter(function(x) {
+                if (Powerset.colorByAttribute === x.attribute) {
+                  return x;
+                }
+              })[0];
+              var curRenderRow = getRenderRowById(d.id);
+              var statistics = stats.visObject.statistics[curRenderRow.id];
+              console.log(d.elementName, statistics.median);
+              addClass = " pw-set-median-" + statistics.median.toFixed(1).replace(".","-");
+            }
+
+            return "pw-set pw-set-" + idx + addClass;
+          })
           .attr("x", function(d, idx) {
             var val = (width * idx) + (10 * idx);
             return x + (val % ps.degreeWidth);
@@ -213,10 +277,8 @@
             return y + (row * height);
           })
           .on("click", function(d) {
-            var strNames = d.items.map(function(x){
-              return attributes[0].values[x];
-            });
-            console.info(d.elementName, d.setSize, strNames.join(","));
+            var strNames = d.items.map(getAttributeInfo);
+            console.info(d.elementName, d.setSize, strNames.join(","), d);
           })
           .attr("width", width)
           .attr("height", height);
@@ -291,28 +353,68 @@
 
     }
 
-    function createStyle(){
+    function createStyleItems() {
+      var min = window.Powerset.colorByAttributeValues.min;
+      var max = window.Powerset.colorByAttributeValues.max;
+      var begRGB = hexToRgb(min.color);
+      var endRGB = hexToRgb(max.color);
+      var start = begRGB;
+
+      var arr = [];
+      var steps = (max.value - min.value) * 0.1;
+      var count = 1;
+      for (var k = min.value; k <= max.value; k += 0.1) {
+        var end = {
+          r: begRGB.r + ((endRGB.r - begRGB.r) / steps * count) ,
+          g: begRGB.g + ((endRGB.g - begRGB.r) / steps * count),
+          b: begRGB.b + ((endRGB.b - begRGB.r) / steps * count)
+        };
+        arr.push({
+          name: ".pw-set-median-" + k.toFixed(1).replace(".","-"),
+          styles: ["fill:" + rgbToHex(end)]
+        });
+        start = end;
+        count++;
+      }
+      return arr;
+    }
+
+    function createStyle() {
       var pwStyle = $("#pw-style");
-      if(pwStyle.length <= 0){
+      if (pwStyle.length <= 0) {
+        /*
         var arrStyles = [{
           name: ".pw-set",
           styles: ["fill:#dedede"]
         }];
+        */
+        var arrStyles = createStyleItems();
 
-        var mapped = arrStyles.map(function(d){
+        var mapped = arrStyles.map(function(d) {
           return d.name + "{" + d.styles.join(";") + "}";
         });
 
-        $('head').append('<style id="pw-style">' + mapped.join() + '</style>');
+        $('head').append('<style id="pw-style" type="text/css">' + mapped.join("") + '</style>');
       }
     }
 
   };
 
   /* OPTIONS */
-  ps.active =  true;
+  ps.active = true;
   ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
+  ps.colorByAttribute = "Average Rating";
+  ps.colorByAttributeValues = {
+    min: {
+      value: 2,
+      color: "#B20000"
+    },
+    max: {
+      value: 4,
+      color: "#00FF48"
+    }
+  }
   ps.toggle = function() {
     ps.active = !ps.active;
     console.info("Powerset active: " + ps.active);
