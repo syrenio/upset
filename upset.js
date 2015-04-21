@@ -964,7 +964,6 @@ function UpSet() {
 */
 
 
-
         subsetRows.each(function (e, j) {
 
             var g = d3.select(this);
@@ -2040,13 +2039,16 @@ function UpSet() {
         })
 
         // decorate subset rows
-        if(window.Powerset && window.Powerset.active === true){    
+        if(window.Powerset){
             if(!window.pwInstance){
                 window.pwInstance = new window.Powerset(ctx, renderRows,sets,setScale);
             }
-            window.pwInstance.draw();
-            //ps.updateSubsetRows(setScale);
-            return; // stop with default upset
+            if(window.Powerset.active===true){
+                window.pwInstance.draw();
+                return; // stop with default upset
+            }else{
+                window.pwInstance.clear();
+            }
         }
 
         updateSubsetRows(subSetRows, setScale);

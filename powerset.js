@@ -25,6 +25,7 @@
 
   // $(".header-container").append("<span> Powerset: <input type='checkbox' checked='checked' onclick='window.Powerset.toggle()'></span>");
 
+
   var ps = window.Powerset = function PowerSet(c, rr, s, scale) {
     var svg = d3.select("#bodyVis").select("svg");
     var ctx = c;
@@ -184,17 +185,29 @@
       drawElementsByDegree();
 
       createStyle();
+      createAttributeSelect();
+
     };
 
-    function getAttributeInfo(val) {
+    function getAttributes() {
       var ignoredSetNames = ["Set Count", "Sets"];
-      var strinfo = ""
-
+      var list = [];
       for (var i = attributes.length - 1; i >= 0; i--) {
-        var attr = attributes[i];
-        if (ignoredSetNames.indexOf(attr.name) === -1) {
-          strinfo += attr.name + ":" + attr.values[val] + "  ";
+        if (ignoredSetNames.indexOf(attributes[i].name) === -1) {
+          list.push(attributes[i]);
         }
+      }
+      return list;
+    }
+
+
+    function getAttributeInfo(val) {
+
+      var strinfo = ""
+      var arr = getAttributes();
+      for (var i = arr.length - 1; i >= 0; i--) {
+        var attr = arr[i];
+        strinfo += attr.name + ":" + attr.values[val] + "  ";
       };
       return strinfo;
     }
@@ -262,7 +275,7 @@
               var curRenderRow = getRenderRowById(d.id);
               var statistics = stats.visObject.statistics[curRenderRow.id];
               console.log(d.elementName, statistics.median);
-              addClass = " pw-set-median-" + statistics.median.toFixed(1).replace(".","-");
+              addClass = " pw-set-median-" + statistics.median.toFixed(1).replace(".", "-");
             }
 
             return "pw-set pw-set-" + idx + addClass;
@@ -353,6 +366,10 @@
 
     }
 
+    function getRandomHexColor() {
+      return "#" + ((1 << 24) * Math.random() | 0).toString(16);
+    }
+
     function createStyleItems() {
       var min = window.Powerset.colorByAttributeValues.min;
       var max = window.Powerset.colorByAttributeValues.max;
@@ -365,13 +382,13 @@
       var count = 1;
       for (var k = min.value; k <= max.value; k += 0.1) {
         var end = {
-          r: begRGB.r + ((endRGB.r - begRGB.r) / steps * count) ,
+          r: begRGB.r + ((endRGB.r - begRGB.r) / steps * count),
           g: begRGB.g + ((endRGB.g - begRGB.r) / steps * count),
           b: begRGB.b + ((endRGB.b - begRGB.r) / steps * count)
         };
         arr.push({
-          name: ".pw-set-median-" + k.toFixed(1).replace(".","-"),
-          styles: ["fill:" + rgbToHex(end)]
+          name: "rect.pw-set-median-" + k.toFixed(1).replace(".", "-"),
+          styles: ["fill:" + getRandomHexColor()] /*rgbToHex(end)*/
         });
         start = end;
         count++;
@@ -381,7 +398,10 @@
 
     function createStyle() {
       var pwStyle = $("#pw-style");
-      if (pwStyle.length <= 0) {
+      if(pwStyle.length > 0){
+        pwStyle.remove();
+      } 
+      else {
         /*
         var arrStyles = [{
           name: ".pw-set",
@@ -394,11 +414,36 @@
           return d.name + "{" + d.styles.join(";") + "}";
         });
 
-        $('head').append('<style id="pw-style" type="text/css">' + mapped.join("") + '</style>');
+        $('head').append('<style id="pw-style" type="text/css">' + mapped.join(" ") + '</style>');
+      }
+    }
+
+    function setColorByAttribute(e){
+      window.Powerset.colorByAttribute = e.currentTarget.value;
+      createStyle();
+    }
+
+    function createAttributeSelect() {
+      var attrSelect = $("#attr-select");
+      if (attrSelect.length <= 0) {
+        var builder = ["<span> Attribute: "];
+        builder.push("<select id='attr-select'>");
+        var arr = getAttributes();
+        for (var i = arr.length - 1; i >= 0; i--) {
+          var x = arr[i];
+          builder.push("<option value='" + x.name + "'>" + x.name + " </option>");
+        };
+        builder.push("</select>");
+        builder.push("</span>");
+        $(".header-container").append(builder.join(""));
+        var sel = $("#attr-select");
+        sel.on("change",setColorByAttribute);
       }
     }
 
   };
+
+
 
   /* OPTIONS */
   ps.active = true;
@@ -420,5 +465,6 @@
     console.info("Powerset active: " + ps.active);
     UpSet();
   };
+
 
 })(window);
