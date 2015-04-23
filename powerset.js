@@ -27,6 +27,7 @@
 
 
   var ps = window.Powerset = function PowerSet(c, rr, s, scale) {
+    var that = this;
     var svg = d3.select("#bodyVis").select("svg");
     var ctx = c;
     var renderRows = rr;
@@ -366,32 +367,19 @@
 
     }
 
-    function getRandomHexColor() {
-      return "#" + ((1 << 24) * Math.random() | 0).toString(16);
-    }
-
-    function createStyleItems() {
+    function createStyleItems() {      
       var min = window.Powerset.colorByAttributeValues.min;
       var max = window.Powerset.colorByAttributeValues.max;
-      var begRGB = hexToRgb(min.color);
-      var endRGB = hexToRgb(max.color);
-      var start = begRGB;
+      var stepSize = window.Powerset.colorByAttributeStepSize;
 
       var arr = [];
-      var steps = (max.value - min.value) * 0.1;
-      var count = 1;
-      for (var k = min.value; k <= max.value; k += 0.1) {
-        var end = {
-          r: begRGB.r + ((endRGB.r - begRGB.r) / steps * count),
-          g: begRGB.g + ((endRGB.g - begRGB.r) / steps * count),
-          b: begRGB.b + ((endRGB.b - begRGB.r) / steps * count)
-        };
+      var colorScale = d3.scale.linear().domain([min.value,max.value]).range([min.color,max.color]);
+      for (var k = min.value; k <= max.value; k += stepSize) {
+        var hexColor = colorScale(k);
         arr.push({
           name: "rect.pw-set-median-" + k.toFixed(1).replace(".", "-"),
-          styles: ["fill:" + getRandomHexColor()] /*rgbToHex(end)*/
+          styles: ["fill:" + hexColor]
         });
-        start = end;
-        count++;
       }
       return arr;
     }
@@ -425,6 +413,9 @@
 
     function createAttributeSelect() {
       var attrSelect = $("#attr-select");
+      if(attrSelect.length > 0){
+        attrSelect.remove();
+      }
       if (attrSelect.length <= 0) {
         var builder = ["<span> Attribute: "];
         builder.push("<select id='attr-select'>");
@@ -449,15 +440,16 @@
   ps.active = true;
   ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
-  ps.colorByAttribute = "Average Rating";
+  ps.colorByAttribute = "Times Watched";
+  ps.colorByAttributeStepSize = 1;
   ps.colorByAttributeValues = {
     min: {
-      value: 2,
-      color: "#B20000"
+      value: 0,
+      color: "white"
     },
     max: {
-      value: 4,
-      color: "#00FF48"
+      value: 500,
+      color: "blue"
     }
   }
   ps.toggle = function() {
