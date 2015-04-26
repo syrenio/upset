@@ -104,6 +104,44 @@
       return size;
     }
 
+    function getAttributes() {
+      var ignoredSetNames = ["Set Count", "Sets"];
+      var list = [];
+      for (var i = attributes.length - 1; i >= 0; i--) {
+        if (ignoredSetNames.indexOf(attributes[i].name) === -1) {
+          list.push(attributes[i]);
+        }
+      }
+      return list;
+    }
+
+
+    function getAttributeInfo(val) {
+
+      var strinfo = ""
+      var arr = getAttributes();
+      for (var i = arr.length - 1; i >= 0; i--) {
+        var attr = arr[i];
+        strinfo += attr.name + ":" + attr.values[val] + "  ";
+      };
+      return strinfo;
+    }
+
+    function getAttributeValue(name, val) {
+      for (var i = attributes.length - 1; i >= 0; i--) {
+        var attr = attributes[i];
+        if (attr.name === name) {
+          return attr.values[val];
+        }
+      }
+    }
+
+    function getRenderRowById(id) {
+      return renderRows.filter(function(d) {
+        return d.data.id === id;
+      })[0];
+    }
+
     this.clear = function() {
       $("#ps-control-panel").remove();
     };
@@ -190,42 +228,8 @@
 
     };
 
-    function getAttributes() {
-      var ignoredSetNames = ["Set Count", "Sets"];
-      var list = [];
-      for (var i = attributes.length - 1; i >= 0; i--) {
-        if (ignoredSetNames.indexOf(attributes[i].name) === -1) {
-          list.push(attributes[i]);
-        }
-      }
-      return list;
-    }
+    function getSubsetWidths(){
 
-
-    function getAttributeInfo(val) {
-
-      var strinfo = ""
-      var arr = getAttributes();
-      for (var i = arr.length - 1; i >= 0; i--) {
-        var attr = arr[i];
-        strinfo += attr.name + ":" + attr.values[val] + "  ";
-      };
-      return strinfo;
-    }
-
-    function getAttributeValue(name, val) {
-      for (var i = attributes.length - 1; i >= 0; i--) {
-        var attr = attributes[i];
-        if (attr.name === name) {
-          return attr.values[val];
-        }
-      }
-    }
-
-    function getRenderRowById(id) {
-      return renderRows.filter(function(d) {
-        return d.data.id === id;
-      })[0];
     }
 
     function drawSubsets(setRects, setScale) {
@@ -240,6 +244,7 @@
         var gWidth = parseInt(g.attr("width"), 10);
         var gHeight = parseInt(g.attr("height"), 10);
 
+        var groupSetSize = d.data.setSize;
 
         // TODO maybe use subsetRows --> more information
         var subsets = d.data.subSets;
@@ -250,9 +255,15 @@
           })
         }
 
+        var setWidths = [];
+        subsets.forEach(function(set, idx) {
+          var x = (gWidth - (10 * (subsets.length - 1))) / groupSetSize;
+          setWidths[idx] = parseFloat((set.setSize * x).toFixed(3),10);
+        });
+
         //var height = 30;
         //var width = 30;
-        var width = (gWidth - (10 * (subsets.length - 1))) / subsets.length;
+        //var width = (gWidth - (10 * (subsets.length - 1))) / subsets.length;
         var height = (gHeight);
 
         // TODO: insert <g>
@@ -282,11 +293,18 @@
             return "pw-set pw-set-" + idx + addClass;
           })
           .attr("x", function(d, idx) {
-            var val = (width * idx) + (10 * idx);
-            return x + (val % ps.degreeWidth);
+            //var val = (setWidths[idx] * idx) + (10 * idx);
+            var prevWidths = setWidths.filter(function(x,i){return i < idx; });
+            var prevWidth = 0;
+            if(prevWidths.length > 0){
+              prevWidth = prevWidths.reduce(function(r,x){return r+x;});
+            }
+            prevWidth += (10 * idx);
+            var val = idx === 0 ? 0 : setWidths[idx];
+            return x + prevWidth; //+ (val % ps.degreeWidth);
           })
           .attr("y", function(d, idx) {
-            var val = ((width) * idx);
+            var val = setWidths[idx];
             var row = parseInt(val / ps.degreeWidth, 10);
             return y + (row * height);
           })
@@ -294,7 +312,9 @@
             var strNames = d.items.map(getAttributeInfo);
             console.info(d.elementName, d.setSize, strNames.join(","), d);
           })
-          .attr("width", width)
+          .attr("width",function(d,idx){
+            return setWidths[idx];
+          })
           .attr("height", height);
         subSetRects.exit().remove();
 
@@ -304,12 +324,22 @@
           subSetTexts.append("text")
             .attr("class", "pw-set-text pw-set-text-" + idx)
             .attr("x", function(d, idx) {
-              var val = (width * idx) + (10 * idx);
-              var rectX = x + (val % ps.degreeWidth);
-              return (width / 2) + rectX;
+              // var val = (width * idx) + (10 * idx);
+              var prevWidths = setWidths.filter(function(x,i){return i < idx; });
+              var prevWidth = 0;
+              if(prevWidths.length > 0){
+                prevWidth = prevWidths.reduce(function(r,x){return r+x;});
+              }
+              prevWidth += (10 * idx);
+              var val = setWidths[idx];
+              //var rectX = x + (val % ps.degreeWidth);
+              //return (val / 2) + rectX + prevWidth;
+              var rectX  = x;
+              return rectX + prevWidth + (val / 2);
             })
             .attr("y", function(d, idx) {
-              var val = ((width) * idx);
+              //var val = ((width) * idx);
+              var val = setWidths[idx];
               var row = parseInt(val / ps.degreeWidth, 10);
               var rectY = y + (row * height);
               return (height / 2) + rectY;
@@ -409,12 +439,14 @@
     function setColorByAttribute(e){
       window.Powerset.colorByAttribute = e.currentTarget.value;
       createStyle();
+      window.pwInstance.draw();
     }
 
     function createAttributeSelect() {
       var attrSelect = $("#attr-select");
       if(attrSelect.length > 0){
-        attrSelect.remove();
+        attrSelect.parent().remove();
+        attrSelect = $("#attr-select");
       }
       if (attrSelect.length <= 0) {
         var builder = ["<span> Attribute: "];
