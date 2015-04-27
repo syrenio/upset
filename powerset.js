@@ -177,7 +177,20 @@
 
       // TODO: insert <g>
       svg.selectAll("text.pw-gset").remove();
-      var groupRects = svg.selectAll("rect.pw-gset").data(groupRows);
+      var gGroup = svg.selectAll("g.pw-g-gset").data(groupRows);
+      gGroup.enter()
+        .append("g")
+        .attr("class","pw-g-gset")
+        .attr({
+          transform: function (d, i) {
+            return   'translate(0, ' + 100 * i+ ')'; // ' + (textHeight - 5) + ')'
+          },
+        });
+      gGroup.exit().remove();
+
+      var groupRects = gGroup.selectAll("rect.pw-gset").data(function(d){
+        return [d];
+      });
       groupRects.enter()
         .append("rect")
         .attr("class", function(d, idx) {
@@ -201,6 +214,31 @@
         });
       groupRects.exit().remove();
 
+/*
+      var groupRects = svg.selectAll("rect.pw-gset").data(groupRows);
+      groupRects.enter()
+        .append("rect")
+        .attr("class", function(d, idx) {
+          return "pw-gset pw-gset-" + idx;
+        })
+        .attr("x", 20)
+        .attr("y", function(d, idx) {
+          var startpoint = 10;
+          var preRows = 0;
+          for (var i = idx - 1; i >= 0; i--) {
+            preRows += (pwDrawInfo.sizes[i] * sizeMulti) + groupPadding;
+          }
+          return startpoint + preRows;
+        })
+        .attr("width", ps.degreeWidth)
+        .attr("height", function(d, idx) {
+          return (pwDrawInfo.sizes[idx] * sizeMulti);
+        })
+        .on("click", function(d, idx) {
+          console.info(d.data.elementName, pwDrawInfo.sizes[idx]);
+        });
+      groupRects.exit().remove();
+*/
       svg.selectAll("text.pw-gtext").remove();
       var gTexts = svg.selectAll("text.pw-gtext").data(groupRows);
       gTexts.enter()
@@ -233,11 +271,13 @@
     }
 
     function drawSubsets(setRects, setScale) {
+      console.info("drawSubsets",setRects);
 
       svg.selectAll("rect.pw-set").remove();
       svg.selectAll("text.pw-set-text").remove();
       //console.warn(setRects);
-      setRects.each(function(d, idx) {
+
+      setRects.each(function(d,xidx,idx) {
         var g = d3.select(this);
         var x = parseInt(g.attr("x"), 10);
         var y = parseInt(g.attr("y"), 10);
@@ -248,6 +288,9 @@
 
         // TODO maybe use subsetRows --> more information
         var subsets = d.data.subSets;
+        subsets.sort(function(a,b){
+          return b.setSize - a.setSize;
+        });
 
         if (ps.showSubsetWithoutData) {
           subsets = subsets.filter(function(d) {
