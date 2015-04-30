@@ -95,15 +95,6 @@
         });
     }
 
-    // better with map-reduce
-    function getSizeOfGroup(group) {
-      var size = 0;
-      group.data.subSets.forEach(function(itm, idx) {
-        size += itm.setSize;
-      });
-      return size;
-    }
-
     function getAttributes() {
       var ignoredSetNames = ["Set Count", "Sets"];
       var list = [];
@@ -161,19 +152,23 @@
       var svgHeight = parseInt(svg.attr("height"), 10);
       ps.degreeWidth = svgWidth - 200;
 
-      pwDrawInfo.allSizes = 0;
-      pwDrawInfo.sizes = [];
+      console.log("svgHeight",svgHeight);
+      console.log("svgWidth",svgWidth);
 
+      var allSizes = 0;
       groupRows.forEach(function(group, idx) {
-        var size = getSizeOfGroup(group);
-        pwDrawInfo.allSizes += size;
-        pwDrawInfo.sizes.push(size);
+        allSizes += group.data.setSize;
       });
 
-      //debugger
-      //console.error(allSizes);
       var groupPadding = 10;
+      var groupHeights = [];
+      groupRows.forEach(function(set, idx) {
+        var x = (svgHeight - (groupPadding * (groupRows.length - 1))) / allSizes;
+        groupHeights[idx] = parseFloat((set.data.setSize * x).toFixed(3),10);
+      });
+
       var sizeMulti = (svgHeight - (groupRows.length * groupPadding)) / pwDrawInfo.allSizes;
+
 
       // TODO: insert <g>
       svg.selectAll("text.pw-gset").remove();
@@ -185,19 +180,31 @@
         })
         .attr("x", 20)
         .attr("y", function(d, idx) {
+          //var val = (setWidths[idx] * idx) + (10 * idx);
+          var prevHeights = groupHeights.filter(function(x,i){return i < idx; });
+          var prevHeight = 0;
+          if(prevHeights.length > 0){
+            prevHeight = prevHeights.reduce(function(r,x){return r+x;});
+          }
+          prevHeight += (groupPadding * idx);
+          var val = groupHeights[idx];
+          return prevHeight; //+ (val % ps.degreeWidth);
+
+          /*
           var startpoint = 10;
           var preRows = 0;
-          for (var i = idx - 1; i >= 0; i--) {
-            preRows += (pwDrawInfo.sizes[i] * sizeMulti) + groupPadding;
+          for (var i = 0; i <= idx - 1; i++) {
+            preRows += (groupHeights[i] * sizeMulti) + groupPadding;
           }
           return startpoint + preRows;
+          */
         })
         .attr("width", ps.degreeWidth)
         .attr("height", function(d, idx) {
-          return (pwDrawInfo.sizes[idx] * sizeMulti);
+          return groupHeights[idx];
         })
         .on("click", function(d, idx) {
-          console.info(d.data.elementName, pwDrawInfo.sizes[idx]);
+          console.info(d.data.elementName, groupHeights[idx]);
         });
       groupRects.exit().remove();
 
@@ -211,12 +218,14 @@
         .attr("class", "pw-gtext")
         .attr("x", 5)
         .attr("y", function(d, idx) {
-          var startpoint = 10;
-          var preRows = 0;
-          for (var i = idx - 1; i >= 0; i--) {
-            preRows += (pwDrawInfo.sizes[i] * sizeMulti) + groupPadding;
+          var prevHeights = groupHeights.filter(function(x,i){return i < idx; });
+          var prevHeight = 0;
+          if(prevHeights.length > 0){
+            prevHeight = prevHeights.reduce(function(r,x){return r+x;});
           }
-          return 30 + startpoint + preRows;
+          prevHeight += (groupPadding * idx);
+          var val = groupHeights[idx];
+          return (val / 2) + prevHeight; //+ (val % ps.degreeWidth);
         });
       gTexts.exit().remove();
 
@@ -248,6 +257,10 @@
 
         // TODO maybe use subsetRows --> more information
         var subsets = d.data.subSets;
+
+        subsets.sort(function(a,b){
+          return b.setSize - a.setSize;
+        });
 
         if (ps.showSubsetWithoutData) {
           subsets = subsets.filter(function(d) {
@@ -286,7 +299,7 @@
               })[0];
               var curRenderRow = getRenderRowById(d.id);
               var statistics = stats.visObject.statistics[curRenderRow.id];
-              console.log(d.elementName, statistics.median);
+              //console.log(d.elementName, statistics.median);
               addClass = " pw-set-median-" + statistics.median.toFixed(1).replace(".", "-");
             }
 

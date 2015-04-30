@@ -9,7 +9,7 @@ function plotSetOverview() {
 
 
     if (arguments[0]){
-        console.log(arguments[0]);
+        //console.log(arguments[0]);
         initialize = arguments[0].initialize || false;
 
         if (initialize){
@@ -22,7 +22,7 @@ function plotSetOverview() {
 //        mode = arguments[0].mode || "none";
     }
 
-    console.log("plotSetOverview");
+    //console.log("plotSetOverview");
 
     var majorPadding = 5;
     var minorPadding = 2;
@@ -230,10 +230,10 @@ function plotSetOverview() {
              * add only if there is enough space !!!
              * */
 
-            console.log(maxWidthUnused, cellDistance);
+            //console.log(maxWidthUnused, cellDistance);
             var paginationDistance = Math.floor(maxWidthUnused/cellDistance);
 
-            console.log(maxWidthUnused, cellDistance, paginationDistance);
+            //console.log(maxWidthUnused, cellDistance, paginationDistance);
             if (initialize){
                 ctx.setSelection.paginationStart=+0;
             }
@@ -322,7 +322,7 @@ function plotSetOverview() {
                 .text(function(d, i) { return d.elementName + " (" +d.setSize+ ")"; });
 
 
-//            console.log("animate:", animate);
+//            //console.log("animate:", animate);
 //            var updateUnusedPos =unusedSetsLabelsEnter;
 //            if (animate){
 //                updateUnusedPos= unusedSetsLabelsEnter
@@ -395,7 +395,7 @@ function plotSetOverview() {
 
 //        var finalPos = svgWidth-paddingForPaginationRight;
         var finalPos = menuOffset;
-//        console.log("finalpos", finalPos);
+//        //console.log("finalpos", finalPos);
         if (ctx.setSelection.mode !== "none"){
             finalPos+=paddingForPaginationRightExtra;
         }
