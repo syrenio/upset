@@ -27,6 +27,8 @@
     var setScale = scale;
 
     var pwDrawInfo = {};
+    
+    window.Powerset.colorByAttribute = setAttributeOrFirstAttribute(window.Powerset.colorByAttribute);
     // console.log("init powerset with " + renderRows.length + " renderRows");
     // console.log("init powerset with " + sets.length + " sets");
 
@@ -47,6 +49,17 @@
       return renderRows.filter(function(d) {
         return d.data.type === ROW_TYPE.SUBSET;
       });
+    }
+    
+    
+    function setAttributeOrFirstAttribute(name){
+      var attrs = getAttributes().filter(function(d,i){return d.name===name;});
+      if(attrs && attrs.length > 0){
+        name = attrs[0].name;
+      }else{
+        name = getAttributes()[0].name;
+      }
+      return name;
     }
 
     function getGroupNames() {
@@ -115,6 +128,15 @@
         var attr = attributes[i];
         if (attr.name === name) {
           return attr.values[val];
+        }
+      }
+    }
+    
+    function getAttributeByName(name, val) {
+      for (var i = attributes.length - 1; i >= 0; i--) {
+        var attr = attributes[i];
+        if (attr.name === name) {
+          return attr;
         }
       }
     }
@@ -278,20 +300,23 @@
               var val = getAttributeValue(Powerset.colorByAttribute, itm);
               arrValues.push(val);
             };
-            var addClass = "";
+            
+            var addClass = " ";
             if (ctx.summaryStatisticVis.length) {
               var stats = ctx.summaryStatisticVis.filter(function(x) {
                 if (Powerset.colorByAttribute === x.attribute) {
                   return x;
                 }
               })[0];
-              var curRenderRow = getRenderRowById(d.id);
-              var statistics = stats.visObject.statistics[curRenderRow.id];
-              //console.log(d.elementName, statistics.median);
-              addClass = " pw-set-median-" + statistics.median.toFixed(1).replace(".", "-");
+              if(stats){
+                var curRenderRow = getRenderRowById(d.id);
+                var statistics = stats.visObject.statistics[curRenderRow.id];
+                //console.log(d.elementName, statistics.median);
+                addClass = " pw-set-median-" + statistics.median.toFixed(1).replace(".", "-");
+              }
             }
 
-            return "pw-set pw-set-" + idx + addClass;
+            return "pw-set pw-set-" + idx + addClass + " name-" + d.elementName.trim().replace(" ","-");
           })
           .attr("x", function(d, idx) {
             //var val = (setWidths[idx] * idx) + (10 * idx);
@@ -411,7 +436,36 @@
       return arr;
     }
 
+    function createRandomStyleItems(attr) {
+  	 /* Combination of Attributes not created ! */
+     /*      
+      var arr = [];
+      attr.values.forEach(function(d,idx){
+        var col = '#'+Math.floor(Math.random()*16777215).toString(16);
+        arr.push({
+          name: "rect.name-" + d,
+          styles: ["fill:" + col]
+        });
+      });
+      return arr;
+      */
+      var arr = [];
+      renderRows.forEach(function(d){
+        var col = '#'+Math.floor(Math.random()*16777215).toString(16);
+        arr.push({
+          name: "rect.name-" + d.data.elementName.trim().replace(" ","-"),
+          styles: ["fill:" + col]
+        });
+      });
+      return arr;
+    }
+
     function createStyle() {
+      var attr = getAttributes().filter(function(d,i){ return d.name===window.Powerset.colorByAttribute;})[0];
+      if(!attr){
+        attr = getAttributes()[0];
+      }
+      
       var pwStyle = $("#pw-style");
       if(pwStyle.length > 0){
         pwStyle.remove();
@@ -423,7 +477,11 @@
           styles: ["fill:#dedede"]
         }];
         */
-        var arrStyles = createStyleItems();
+        if(attr && attr.type==="integer"){
+          var arrStyles = createStyleItems();
+        }else{
+          var arrStyles = createRandomStyleItems(attr);
+        }
 
         var mapped = arrStyles.map(function(d) {
           return d.name + "{" + d.styles.join(";") + "}";
@@ -451,7 +509,8 @@
         var arr = getAttributes();
         for (var i = arr.length - 1; i >= 0; i--) {
           var x = arr[i];
-          builder.push("<option value='" + x.name + "'>" + x.name + " </option>");
+          var selected = Powerset.colorByAttribute === x.name;
+          builder.push("<option value='" + x.name + "' + selected='" + selected + "'>" + x.name + " </option>");
         };
         builder.push("</select>");
         builder.push("</span>");
@@ -462,7 +521,6 @@
     }
 
   };
-
 
 
   /* OPTIONS */
