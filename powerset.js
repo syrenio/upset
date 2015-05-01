@@ -1,22 +1,14 @@
+/* global UpSet */
+/* global Powerset */
+/* global ROW_TYPE */
+/* global attributes */
+/* global d3 */
+/* global $ */
 /*
   use renderRows and sets-> Original Data !
 */
 
 (function(window) {
-
-
-  function hexToRgb(hex) {
-    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-      r: parseInt(result[1], 16),
-      g: parseInt(result[2], 16),
-      b: parseInt(result[3], 16)
-    } : null;
-  }
-
-  function rgbToHex(o) {
-    return "#" + ((1 << 24) + (o.r << 16) + (o.g << 8) + o.b).toString(16).slice(1);
-  }
 
   //window.Powerset = window.Powerset || {};
   //var ps = window.Powerset;
@@ -109,7 +101,7 @@
 
     function getAttributeInfo(val) {
 
-      var strinfo = ""
+      var strinfo = "";
       var arr = getAttributes();
       for (var i = arr.length - 1; i >= 0; i--) {
         var attr = arr[i];
@@ -146,11 +138,14 @@
 
       var visContainer = $(document.getElementById("set-vis-container"));
 
-      svg.attr("height", parseInt(visContainer.height() - 300, 10));
-      svg.attr("width", parseInt(visContainer.width() - 200, 10));
+      
+      //svg.attr("height", parseInt(visContainer.height() - 300, 10));
+      //svg.attr("width", parseInt(visContainer.width() - 200, 10));
+      svg.attr("height",Powerset.size.height);
+      svg.attr("width",Powerset.size.width);
       var svgWidth = parseInt(svg.attr("width"), 10);
       var svgHeight = parseInt(svg.attr("height"), 10);
-      ps.degreeWidth = svgWidth - 200;
+      ps.degreeWidth = svgWidth - 30;
 
       console.log("svgHeight",svgHeight);
       console.log("svgWidth",svgWidth);
@@ -167,11 +162,8 @@
         groupHeights[idx] = parseFloat((set.data.setSize * x).toFixed(3),10);
       });
 
-      var sizeMulti = (svgHeight - (groupRows.length * groupPadding)) / pwDrawInfo.allSizes;
-
-
       // TODO: insert <g>
-      svg.selectAll("text.pw-gset").remove();
+      svg.selectAll("rect.pw-gset").remove();
       var groupRects = svg.selectAll("rect.pw-gset").data(groupRows);
       groupRects.enter()
         .append("rect")
@@ -187,7 +179,7 @@
             prevHeight = prevHeights.reduce(function(r,x){return r+x;});
           }
           prevHeight += (groupPadding * idx);
-          var val = groupHeights[idx];
+          //var val = groupHeights[idx];
           return prevHeight; //+ (val % ps.degreeWidth);
 
           /*
@@ -237,10 +229,6 @@
 
     };
 
-    function getSubsetWidths(){
-
-    }
-
     function drawSubsets(setRects, setScale) {
 
       svg.selectAll("rect.pw-set").remove();
@@ -265,7 +253,7 @@
         if (ps.showSubsetWithoutData) {
           subsets = subsets.filter(function(d) {
             return d.setSize > 0;
-          })
+          });
         }
 
         var setWidths = [];
@@ -313,13 +301,14 @@
               prevWidth = prevWidths.reduce(function(r,x){return r+x;});
             }
             prevWidth += (10 * idx);
-            var val = idx === 0 ? 0 : setWidths[idx];
+            // var val = idx === 0 ? 0 : setWidths[idx];
             return x + prevWidth; //+ (val % ps.degreeWidth);
           })
           .attr("y", function(d, idx) {
             var val = setWidths[idx];
-            var row = parseInt(val / ps.degreeWidth, 10);
-            return y + (row * height);
+            // var row = parseInt(val / ps.degreeWidth, 10);
+            var row = 0; 	
+            return y + (row * height);           
           })
           .on("click", function(d) {
             var strNames = d.items.map(getAttributeInfo);
@@ -366,12 +355,7 @@
         }
       });
     }
-
-
-    function drawSetsBySize() {
-
-    }
-
+    
     function drawElementsByDegree() {
       var groupRows = getGroupRows();
 
@@ -483,6 +467,10 @@
 
   /* OPTIONS */
   ps.active = true;
+  ps.size = {
+    height : 700,
+    width : 700
+  };
   ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
   ps.colorByAttribute = "Times Watched";
@@ -496,7 +484,7 @@
       value: 500,
       color: "blue"
     }
-  }
+  };
   ps.toggle = function() {
     ps.active = !ps.active;
     console.info("Powerset active: " + ps.active);
