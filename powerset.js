@@ -1,3 +1,4 @@
+/* global queryParameters */
 /* global UpSet */
 /* global Powerset */
 /* global ROW_TYPE */
@@ -450,30 +451,6 @@
       return arr;
     }
 
-    function createRandomStyleItems(attr) {
-  	 /* Combination of Attributes not created ! */
-     /*      
-      var arr = [];
-      attr.values.forEach(function(d,idx){
-        var col = '#'+Math.floor(Math.random()*16777215).toString(16);
-        arr.push({
-          name: "rect.name-" + d,
-          styles: ["fill:" + col]
-        });
-      });
-      return arr;
-      */
-      var arr = [];
-      renderRows.forEach(function(d){
-        var col = '#'+Math.floor(Math.random()*16777215).toString(16);
-        arr.push({
-          name: "rect.name-" + d.data.elementName.trim().replace(" ","-"),
-          styles: ["fill:" + col]
-        });
-      });
-      return arr;
-    }
-
     function createStyle() {
       var attr = getAttributes().filter(function(d,i){ return d.name===window.Powerset.colorByAttribute;})[0];
       if(!attr){
@@ -493,11 +470,9 @@
         */
         if(attr && attr.type==="integer"){
           var arrStyles = createStyleItems();
-        }else{
-          var arrStyles = createRandomStyleItems(attr);
         }
 
-        var mapped = arrStyles.map(function(d) {
+        var mapped = (arrStyles || []).map(function(d) {
           return d.name + "{" + d.styles.join(";") + "}";
         });
 
@@ -511,9 +486,14 @@
       window.pwInstance.draw();
     }
 
+    /*
+     * create attribute selector 
+     * recreate if attribute-count would change 
+     */
     function createAttributeSelect() {
       var attrSelect = $("#attr-select");
-      if(attrSelect.length > 0){
+      var prevDatasetId = queryParameters.dataset;
+      if(attrSelect.length > 0 && attrSelect.data("datasetid") !== prevDatasetId){
         attrSelect.parent().remove();
         attrSelect = $("#attr-select");
       }
@@ -530,6 +510,7 @@
         builder.push("</span>");
         $(".header-container").append(builder.join(""));
         var sel = $("#attr-select");
+        sel.data("datasetid",queryParameters.dataset);
         sel.on("change",setColorByAttribute);
       }
     }
@@ -543,18 +524,22 @@
     height : 700,
     width : 700
   };
+  /* X Percent is reserved for the "+Show more Block" */
+  ps.showMorePercent = 10; 
   ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
   ps.colorByAttribute = "Times Watched";
+  /* auto determine stepsize */
   ps.colorByAttributeStepSize = 1;
+  /* auto define min and max value */
   ps.colorByAttributeValues = {
     min: {
       value: 0,
       color: "white"
     },
     max: {
-      value: 500,
-      color: "blue"
+      value: 700,
+      color: "darkblue"
     }
   };
   ps.toggle = function() {
