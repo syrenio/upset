@@ -307,27 +307,26 @@
         subSetRects.enter().append("rect")
           .attr("class", function(d) {
             var arrValues = [];
-            var attr = getAttributeByName(Powerset.colorByAttribute);
+            
             for (var i = d.items.length - 1; i >= 0; i--) {
               var itm = d.items[i];
               var val = getAttributeValue(Powerset.colorByAttribute, itm);
               arrValues.push(val);
             };
             
-            var addClass = " ";
+            return "pw-set pw-set-" + idx;
+          })
+          .attr("data-median",function(d){
+            var attr = getAttributeByName(Powerset.colorByAttribute);
             if (ctx.summaryStatisticVis.length) {
               var stats = getVisualStats();
               if(stats){
                 var curRenderRow = getRenderRowById(d.id);
                 var statistics = stats.visObject.statistics[curRenderRow.id];
-                //console.log(d.elementName, statistics.median);
                 var fixedNumber = attr.type==="float" ? 3 : 0;
-                addClass = " pw-set-median-" + statistics.median.toFixed(fixedNumber).replace(".", "-");
+                return statistics.median.toFixed(fixedNumber);
               }
             }
-
-            //+ " name-" + d.elementName.trim().replace(" ","-")
-            return "pw-set pw-set-" + idx + addClass;
           })
           .style({
             fill: function(d,i){
@@ -494,21 +493,26 @@
 
     }
 
-    function createStyleItems(attr) {      
+    function createStyleItems(attr) {
       var min = window.Powerset.colorByAttributeValues.min;
       var max = window.Powerset.colorByAttributeValues.max;
-      var stepSize = window.Powerset.colorByAttributeStepSize;
-
-      var arr = [];
       var colorScale = d3.scale.linear().domain([attr.min,attr.max]).range([min.color,max.color]);
-      var fixedNumber = attr.type==="float" ? 3 : 0;
-      for (var k = attr.min; k <= attr.max; k += stepSize) {
-        var hexColor = colorScale(k);
+      var arr = [];
+      
+      var subsetRects = svg.selectAll("rect.pw-set");
+      subsetRects.each(function(d,i) {
+        var rect = $(this);
+        var median = rect.data("median");
+        var hexColor = colorScale(median);
         arr.push({
-          name: "rect.pw-set-median-" + k.toFixed(fixedNumber).replace(".", "-"),
+          name: "rect.pw-set[data-median='" + median + "']",
           styles: ["fill:" + hexColor]
         });
-      }
+      });
+
+      
+      
+      
       return arr;
     }
 
@@ -596,8 +600,6 @@
   ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
   ps.colorByAttribute = "Times Watched";
-  /* auto determine stepsize */
-  ps.colorByAttributeStepSize = 1;
   /* auto define min and max value */
   ps.colorByAttributeValues = {
     min: {
