@@ -307,6 +307,7 @@
         subSetRects.enter().append("rect")
           .attr("class", function(d) {
             var arrValues = [];
+            var attr = getAttributeByName(Powerset.colorByAttribute);
             for (var i = d.items.length - 1; i >= 0; i--) {
               var itm = d.items[i];
               var val = getAttributeValue(Powerset.colorByAttribute, itm);
@@ -320,7 +321,8 @@
                 var curRenderRow = getRenderRowById(d.id);
                 var statistics = stats.visObject.statistics[curRenderRow.id];
                 //console.log(d.elementName, statistics.median);
-                addClass = " pw-set-median-" + statistics.median.toFixed(1).replace(".", "-");
+                var fixedNumber = attr.type==="float" ? 3 : 0;
+                addClass = " pw-set-median-" + statistics.median.toFixed(fixedNumber).replace(".", "-");
               }
             }
 
@@ -492,17 +494,18 @@
 
     }
 
-    function createStyleItems() {      
+    function createStyleItems(attr) {      
       var min = window.Powerset.colorByAttributeValues.min;
       var max = window.Powerset.colorByAttributeValues.max;
       var stepSize = window.Powerset.colorByAttributeStepSize;
 
       var arr = [];
-      var colorScale = d3.scale.linear().domain([min.value,max.value]).range([min.color,max.color]);
-      for (var k = min.value; k <= max.value; k += stepSize) {
+      var colorScale = d3.scale.linear().domain([attr.min,attr.max]).range([min.color,max.color]);
+      var fixedNumber = attr.type==="float" ? 3 : 0;
+      for (var k = attr.min; k <= attr.max; k += stepSize) {
         var hexColor = colorScale(k);
         arr.push({
-          name: "rect.pw-set-median-" + k.toFixed(1).replace(".", "-"),
+          name: "rect.pw-set-median-" + k.toFixed(fixedNumber).replace(".", "-"),
           styles: ["fill:" + hexColor]
         });
       }
@@ -526,11 +529,14 @@
           styles: ["fill:#dedede"]
         }];
         */
+        var arrStyles = [];
         if(attr && attr.type==="integer"){
-          var arrStyles = createStyleItems();
+          arrStyles = createStyleItems(attr);
+        }else if(attr && attr.type==="float"){
+          arrStyles = createStyleItems(attr);
         }
 
-        var mapped = (arrStyles || []).map(function(d) {
+        var mapped = arrStyles.map(function(d) {
           return d.name + "{" + d.styles.join(";") + "}";
         });
 
@@ -595,11 +601,9 @@
   /* auto define min and max value */
   ps.colorByAttributeValues = {
     min: {
-      value: 0,
       color: "white"
     },
     max: {
-      value: 700,
       color: "darkblue"
     }
   };
