@@ -47,10 +47,12 @@ div.ps-control-panel{
 	float: left;
 }
 
-.elm-by-deg-scale{
+.elm-by-deg-scale, .elm-by-sets-scale{
 	border-bottom: 1px solid black;
 }
-.elm-by-deg-scale span:last-child{
+.elm-by-deg-scale span:last-child,
+.elm-by-sets-scale span:last-child
+{
 	float:right;
 }
 

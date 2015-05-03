@@ -245,7 +245,9 @@
       gTexts.exit().remove();
 
       drawSubsets(groupRects, setScale);
+      drawSetsBySize();
       drawElementsByDegree();
+      
 
       createStyle();
       createAttributeSelect();
@@ -396,15 +398,70 @@
       });
     }
     
-    function drawElementsByDegree() {
-      var groupRows = getGroupRows();
+    function drawSetsBySize(){      
+      
+      var subsetRows = getSubsetRows().sort(function(a,b){ return b.data.setSize - a.data.setSize;});
 
-      var overallSize = groupRows.map(function(d) {
+      var maxSize = 0;
+      var totalSize = 0;
+      var overallSize = 0;
+      totalSize = subsetRows.map(function(d) {
         return d.data.setSize;
       }).reduce(function(preVal, val, idx) {
         return preVal + val;
       });
+      var arr = subsetRows.map(function(d){
+        return d.data.setSize;
+      });
+      maxSize = Math.max.apply(null,arr);
+      
+      if(Powerset.controlPanelPercentByTotal){
+         overallSize = totalSize;
+      }else{
+        overallSize = maxSize;
+      }
+      
+      controlPanel.find("#ps-control-panel-sets").remove();
+      var setsPanel = controlPanel.append("<div id='ps-control-panel-sets'></div>").find("#ps-control-panel-sets");
+      setsPanel.append("<h3>Sets by size");
 
+      setsPanel.append("<div class='elm-by-sets-scale'><span>0</span><span>" + overallSize + "</span></div>");
+      
+      setsPanel.append("<div id='elm-by-sets-rows'></div>");
+      var rows = d3.select("#elm-by-sets-rows").selectAll("div.row").data(subsetRows);
+      rows.enter()
+        .append("div")
+        .html(function(d, idx) {
+          var str = "<input type='checkbox' checked='checked' value='" + idx + "'>";
+          //str += "<span>" + d.data.elementName + "</span>";
+          var titleText = d.data.elementName + " - " + (d.data.setSize / totalSize * 100).toFixed(3);
+          str += "<progress title='" + titleText + "' value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
+          return str;
+        });
+      rows.exit().remove();
+    }
+    
+    function drawElementsByDegree() {
+      var groupRows = getGroupRows();
+
+      var maxSize = 0;
+      var totalSize = 0;
+      var overallSize = 0;
+      totalSize = groupRows.map(function(d) {
+        return d.data.setSize;
+      }).reduce(function(preVal, val, idx) {
+        return preVal + val;
+      });
+      var arr = groupRows.map(function(d){
+        return d.data.setSize;
+      });
+      maxSize = Math.max.apply(null,arr);
+      
+      if(Powerset.controlPanelPercentByTotal){
+         overallSize = totalSize;
+      }else{
+        overallSize = maxSize;
+      }
 
       controlPanel.find("#ps-control-panel-degree").remove();
       var degPanel = controlPanel.append("<div id='ps-control-panel-degree'></div>").find("#ps-control-panel-degree");
@@ -426,7 +483,8 @@
         .html(function(d, idx) {
           var str = "<input type='checkbox' checked='checked' value='" + idx + "'>";
           str += "<span>" + idx + "</span>";
-          str += "<progress value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
+          var titleText = d.data.elementName + " - " + (d.data.setSize / totalSize * 100).toFixed(3);
+          str += "<progress title='" + titleText + "' value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
 
           return str;
         });
@@ -524,6 +582,9 @@
     height : 700,
     width : 700
   };
+  /* show percent in control panel by total size or by max size(largest member) */
+  ps.controlPanelPercentByTotal = false;
+  
   /* X Percent is reserved for the "+Show more Block" */
   ps.showMorePercent = 10; 
   ps.showSubsetTexts = true;
