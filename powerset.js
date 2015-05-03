@@ -251,6 +251,15 @@
 
     };
 
+    function getVisualStats(){
+      var stats = ctx.summaryStatisticVis.filter(function(x) {
+        if (Powerset.colorByAttribute === x.attribute) {
+          return x;
+        }
+      })[0];
+      return stats;
+    }
+
     function drawSubsets(setRects, setScale) {
 
       svg.selectAll("rect.pw-set").remove();
@@ -303,11 +312,7 @@
             
             var addClass = " ";
             if (ctx.summaryStatisticVis.length) {
-              var stats = ctx.summaryStatisticVis.filter(function(x) {
-                if (Powerset.colorByAttribute === x.attribute) {
-                  return x;
-                }
-              })[0];
+              var stats = getVisualStats();
               if(stats){
                 var curRenderRow = getRenderRowById(d.id);
                 var statistics = stats.visObject.statistics[curRenderRow.id];
@@ -316,7 +321,16 @@
               }
             }
 
-            return "pw-set pw-set-" + idx + addClass + " name-" + d.elementName.trim().replace(" ","-");
+            //+ " name-" + d.elementName.trim().replace(" ","-")
+            return "pw-set pw-set-" + idx + addClass;
+          })
+          .style({
+            fill: function(d,i){
+              var stats = getVisualStats();
+              if(!stats){
+                return '#'+Math.floor(Math.random()*16777215).toString(16);  
+              }
+            }
           })
           .attr("x", function(d, idx) {
             //var val = (setWidths[idx] * idx) + (10 * idx);

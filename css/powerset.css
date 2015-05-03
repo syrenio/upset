@@ -24,7 +24,7 @@
 }
 
 .pw-set:hover{
-	fill: lightgreen;
+	fill: lightgreen !important;
 	cursor: pointer;
 }
 
