@@ -267,6 +267,9 @@
 
       svg.selectAll("rect.pw-set").remove();
       svg.selectAll("text.pw-set-text").remove();
+      //svg.selectAll("foreignobject.pw-set-text").remove();
+      //workaround foreignObjects (foreignObject camelCase not working in webkit)
+      svg.selectAll(".pw-set-text").remove();
       //console.warn(setRects);
       setRects.each(function(d, idx) {
         var g = d3.select(this);
@@ -364,35 +367,42 @@
         subSetRects.exit().remove();
 
         if (ps.showSubsetTexts) {
-          svg.selectAll("text.pw-set-text-" + idx).remove();
-          var subSetTexts = svg.selectAll("text.pw-set-text-" + idx).data(subsets).enter();
-          subSetTexts.append("text")
+          
+          //workaround foreignObjects
+          svg.selectAll(".pw-set-text-" + idx).remove();
+          //svg.selectAll("foreignObject.pw-set-text-" + idx).remove();
+          var subSetTexts = svg.selectAll("foreignObject.pw-set-text-" + idx).data(subsets).enter();
+          subSetTexts.append("foreignObject")
             .attr("class", "pw-set-text pw-set-text-" + idx)
             .attr("x", function(d, idx) {
-              // var val = (width * idx) + (10 * idx);
               var prevWidths = setWidths.filter(function(x,i){return i < idx; });
               var prevWidth = 0;
               if(prevWidths.length > 0){
                 prevWidth = prevWidths.reduce(function(r,x){return r+x;});
               }
               prevWidth += (10 * idx);
-              var val = setWidths[idx];
-              //var rectX = x + (val % ps.degreeWidth);
-              //return (val / 2) + rectX + prevWidth;
-              var rectX  = x;
-              return rectX + prevWidth + (val / 2);
+              return x + prevWidth; 
             })
             .attr("y", function(d, idx) {
-              //var val = ((width) * idx);
-              var val = setWidths[idx];
-              var row = parseInt(val / ps.degreeWidth, 10);
-              var rectY = y + (row * height);
-              return (height / 2) + rectY;
-
+              var row = 0; 	
+              return y + (row * height);
+            })
+            .attr("height",height)
+            .attr("width", function(d,idx){
+              return setWidths[idx];
             })
             .attr("text-anchor", "middle")
             .attr("alignment-baseline", "middle")
+            .append("xhtml:body")
+            .append("div")
+            .attr("class","pw-set-text-center")
+            .style({
+              "line-height": height + "px"
+            })
             .text(function(d, i) {
+              return d.elementName;
+            })
+            .attr("title", function(d, i) {
               return d.elementName;
             });
         }

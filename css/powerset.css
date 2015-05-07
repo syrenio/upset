@@ -28,6 +28,12 @@
 	cursor: pointer;
 }
 
+
+.pw-set-text-center:hover{
+	background-color : lightgreen !important;
+	cursor: pointer;
+}
+
 div#bodyVis {
   height: 100% !important;
 }
@@ -63,4 +69,9 @@ div.ps-control-panel{
 .row progress{
 	margin-left: 20px;
 	width: 120px;
+}
+
+.pw-set-text-center{
+	text-align: center;
+	vertical-align: middle;
 }
