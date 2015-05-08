@@ -71,7 +71,16 @@ div.ps-control-panel{
 	width: 120px;
 }
 
+.pw-set-text-body{
+	display: table;
+}
+
 .pw-set-text-center{
 	text-align: center;
 	vertical-align: middle;
+	display: table-cell;
+}
+
+.pw-set-more{
+	fill: lightgray
 }

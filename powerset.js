@@ -36,7 +36,7 @@
     $("#bodyVis").prepend("<div id='ps-control-panel' class='ps-control-panel'></div>");
 
     var controlPanel = $("#ps-control-panel");
-
+    
     function getGroupRows() {
       function fnCheck(d) {
         return (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE);
@@ -177,11 +177,10 @@
       groupRows.forEach(function(group, idx) {
         allSizes += group.data.setSize;
       });
-
-      var groupPadding = 10;
+       
       var groupHeights = [];
       groupRows.forEach(function(set, idx) {
-        var x = (svgHeight - (groupPadding * (groupRows.length - 1))) / allSizes;
+        var x = (svgHeight - (Powerset.groupSetPadding * (groupRows.length - 1))) / allSizes;
         groupHeights[idx] = parseFloat((set.data.setSize * x).toFixed(3),10);
       });
 
@@ -201,7 +200,7 @@
           if(prevHeights.length > 0){
             prevHeight = prevHeights.reduce(function(r,x){return r+x;});
           }
-          prevHeight += (groupPadding * idx);
+          prevHeight += (Powerset.groupSetPadding * idx);
           //var val = groupHeights[idx];
           return prevHeight; //+ (val % ps.degreeWidth);
 
@@ -238,7 +237,7 @@
           if(prevHeights.length > 0){
             prevHeight = prevHeights.reduce(function(r,x){return r+x;});
           }
-          prevHeight += (groupPadding * idx);
+          prevHeight += (Powerset.groupSetPadding * idx);
           var val = groupHeights[idx];
           return (val / 2) + prevHeight; //+ (val % ps.degreeWidth);
         });
@@ -270,6 +269,7 @@
       //svg.selectAll("foreignobject.pw-set-text").remove();
       //workaround foreignObjects (foreignObject camelCase not working in webkit)
       svg.selectAll(".pw-set-text").remove();
+      svg.selectAll(".pw-set-more-text").remove();
       //console.warn(setRects);
       setRects.each(function(d, idx) {
         var g = d3.select(this);
@@ -295,14 +295,24 @@
 
         var setWidths = [];
         subsets.forEach(function(set, idx) {
-          var x = (gWidth - (10 * (subsets.length - 1))) / groupSetSize;
+          var x = (gWidth - (Powerset.setPadding * (subsets.length - 1))) / groupSetSize;
           setWidths[idx] = parseFloat((set.setSize * x).toFixed(3),10);
         });
 
-        //var height = 30;
-        //var width = 30;
-        //var width = (gWidth - (10 * (subsets.length - 1))) / subsets.length;
         var height = (gHeight);
+        
+        var lastX = null;
+        var lastIdx = null;
+
+        function getPreviousWidth(idx){
+          var prevWidths = setWidths.filter(function(x,i){return i < idx; });
+          var prevWidth = 0;
+          if(prevWidths.length > 0){
+            prevWidth = prevWidths.reduce(function(r,x){return r+x;});
+          }
+          prevWidth += (Powerset.setPadding * idx);
+          return prevWidth;
+        }
 
         // TODO: insert <g>
         svg.selectAll("rect.pw-set-" + idx).remove();
@@ -340,19 +350,21 @@
             }
           })
           .attr("x", function(d, idx) {
-            //var val = (setWidths[idx] * idx) + (10 * idx);
-            var prevWidths = setWidths.filter(function(x,i){return i < idx; });
-            var prevWidth = 0;
-            if(prevWidths.length > 0){
-              prevWidth = prevWidths.reduce(function(r,x){return r+x;});
+            var prevWidth = getPreviousWidth(idx);
+            var startX = x + prevWidth;
+            
+            var perc = (gWidth * (1 - (Powerset.showMorePercent/100)));
+            if(startX >= perc){
+              if(lastX === null){
+                lastX = startX;
+                lastIdx = idx;
+              }
+              return -1000;
             }
-            prevWidth += (10 * idx);
-            // var val = idx === 0 ? 0 : setWidths[idx];
-            return x + prevWidth; //+ (val % ps.degreeWidth);
+            
+            return startX;
           })
           .attr("y", function(d, idx) {
-            var val = setWidths[idx];
-            // var row = parseInt(val / ps.degreeWidth, 10);
             var row = 0; 	
             return y + (row * height);           
           })
@@ -366,6 +378,13 @@
           .attr("height", height);
         subSetRects.exit().remove();
 
+        /* show more rect */
+        //svg.select("rect.pw-set-more-" + idx).remove();
+        var prevWidth = getPreviousWidth(lastIdx);
+        var nonShownWidhts = setWidths.filter(function(x,i){return i >= lastIdx; });
+        drawShowMoreRect(idx, lastX, y, height, (gWidth-prevWidth), nonShownWidhts.length);
+        
+
         if (ps.showSubsetTexts) {
           
           //workaround foreignObjects
@@ -375,13 +394,13 @@
           subSetTexts.append("foreignObject")
             .attr("class", "pw-set-text pw-set-text-" + idx)
             .attr("x", function(d, idx) {
-              var prevWidths = setWidths.filter(function(x,i){return i < idx; });
-              var prevWidth = 0;
-              if(prevWidths.length > 0){
-                prevWidth = prevWidths.reduce(function(r,x){return r+x;});
+              var prevWidth = getPreviousWidth(idx);
+              var startX = x + prevWidth;
+              var perc = (gWidth * (1 - (Powerset.showMorePercent/100)));
+              if(startX >= perc ){
+                return -1000;
               }
-              prevWidth += (10 * idx);
-              return x + prevWidth; 
+              return startX;
             })
             .attr("y", function(d, idx) {
               var row = 0; 	
@@ -394,11 +413,16 @@
             .attr("text-anchor", "middle")
             .attr("alignment-baseline", "middle")
             .append("xhtml:body")
-            .append("div")
-            .attr("class","pw-set-text-center")
+            .attr("class","pw-set-text-body")
             .style({
-              "line-height": height + "px"
+              "width": function(d,idx){ return setWidths[idx] + "px"; }
             })
+            .append("p")
+            .on("click", function(d) {
+              var strNames = d.items.map(getAttributeInfo);
+              console.info(d.elementName, d.setSize, strNames.join(","), d);
+            })
+            .attr("class","pw-set-text-center")
             .text(function(d, i) {
               return d.elementName;
             })
@@ -407,6 +431,36 @@
             });
         }
       });
+    }
+    
+    function drawShowMoreRect(idx, lastX, y, height, width, hiddenSetsCount){
+      svg.select("rect.pw-set-more-" + idx).remove();
+      if(lastX === null){
+        return;
+      }
+      svg.append("rect")
+        .attr("class", "pw-set-more pw-set-more-" + idx)
+        .attr("x", lastX)
+        .attr("y", y)
+        .attr("width", width)
+        .attr("height", height);
+     
+     svg.selectAll(".pw-set-more-text-" + idx).remove();
+     svg.append("foreignObject")
+        .attr("class","pw-set-more-text pw-set-more-text-" + idx)
+        .attr("x", lastX)
+        .attr("y", y)
+        .attr("width", width)
+        .attr("height", height)
+        .append("xhtml:body")
+        .attr("class","pw-set-text-body")
+        .style({
+          "width": width + "px"
+        })
+        .append("p")
+        .attr("class","pw-set-text-center")
+        .text( hiddenSetsCount + " more")
+        .attr("title", hiddenSetsCount + " more");
     }
     
     function drawSetsBySize(){      
@@ -519,10 +573,6 @@
           styles: ["fill:" + hexColor]
         });
       });
-
-      
-      
-      
       return arr;
     }
 
@@ -599,12 +649,17 @@
   /* OPTIONS */
   ps.active = true;
   ps.size = {
-    height : 700,
-    width : 700
+    height : 500,
+    width : 500
   };
   /* show percent in control panel by total size or by max size(largest member) */
   ps.controlPanelPercentByTotal = false;
   
+  ps.groupSetPadding = 5;
+  ps.setPadding = 10;
+  
+  ps.minimalSetHeight = null;
+  ps.minimalSetWidth = null;
   /* X Percent is reserved for the "+Show more Block" */
   ps.showMorePercent = 10; 
   ps.showSubsetTexts = true;
