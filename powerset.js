@@ -29,6 +29,9 @@
 
     var pwDrawInfo = {};
     
+    var openSets = [];
+    
+    
     window.Powerset.colorByAttribute = setAttributeOrFirstAttribute(window.Powerset.colorByAttribute);
     // console.log("init powerset with " + renderRows.length + " renderRows");
     // console.log("init powerset with " + sets.length + " sets");
@@ -173,15 +176,24 @@
       console.log("svgHeight",svgHeight);
       console.log("svgWidth",svgWidth);
 
+
+      /* init loop */
       var allSizes = 0;
       groupRows.forEach(function(group, idx) {
+        if(typeof(openSets[idx]) == "undefined"){
+          openSets[idx] = true;  
+        }
         allSizes += group.data.setSize;
       });
        
       var groupHeights = [];
       groupRows.forEach(function(set, idx) {
         var x = (svgHeight - (Powerset.groupSetPadding * (groupRows.length - 1))) / allSizes;
-        groupHeights[idx] = parseFloat((set.data.setSize * x).toFixed(3),10);
+        if(openSets[idx]){
+          groupHeights[idx] = parseFloat((set.data.setSize * x).toFixed(3),10);  
+        }else{
+          groupHeights[idx] = Powerset.collapsedHeight;
+        }        
       });
 
       // TODO: insert <g>
@@ -497,7 +509,7 @@
       rows.enter()
         .append("div")
         .html(function(d, idx) {
-          var str = "<input type='checkbox' checked='checked' value='" + idx + "'>";
+          var str = "<input type='checkbox' checked='checked' value='" + idx + "' id='chk-set-size-" + idx + "'>";
           //str += "<span>" + d.data.elementName + "</span>";
           var titleText = d.data.elementName + " - " + (d.data.setSize / totalSize * 100).toFixed(3);
           str += "<progress title='" + titleText + "' value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
@@ -546,14 +558,22 @@
           "row": true
         })
         .html(function(d, idx) {
-          var str = "<input type='checkbox' checked='checked' value='" + idx + "'>";
+          var checked = openSets[idx] ? "checked='checked'" : "";
+          
+          var str = "<input type='checkbox' " + checked + " value='" + idx + "' class='chk-set-degree'>";
           str += "<span>" + idx + "</span>";
           var titleText = d.data.elementName + " - " + (d.data.setSize / totalSize * 100).toFixed(3);
           str += "<progress title='" + titleText + "' value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
-
           return str;
         });
       rows.exit().remove();
+
+      $("input.chk-set-degree").on("change",function(){
+        var idx = $(this).val();
+        console.log("change: ",openSets[idx]," => ", !openSets[idx]);
+        openSets[idx] = !openSets[idx];
+        that.draw();
+      });
 
     }
 
@@ -665,6 +685,9 @@
   ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
   ps.colorByAttribute = "Times Watched";
+  
+  ps.collapsedHeight = 10;
+  
   /* auto define min and max value */
   ps.colorByAttributeValues = {
     min: {
