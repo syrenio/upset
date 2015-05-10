@@ -299,8 +299,11 @@
 
         var setWidths = [];
         subsets.forEach(function(set, idx) {
-          var x = (gWidth - (Powerset.setPadding * (subsets.length - 1))) / groupSetSize;
-          setWidths[idx] = parseFloat((set.setSize * x).toFixed(3),10);
+          var minWidth = Powerset.minimalSetWidth;
+          var lsets = subsets.length;
+          
+          var x = (gWidth - (Powerset.setPadding * (lsets - 1)) - (minWidth * lsets )) / groupSetSize;
+          setWidths[idx] = parseFloat((set.setSize * x).toFixed(3),10) + minWidth;
         });
 
         var height = (gHeight);
@@ -597,27 +600,26 @@
       var pwStyle = $("#pw-style");
       if(pwStyle.length > 0){
         pwStyle.remove();
-      } 
-      else {
-        /*
-        var arrStyles = [{
-          name: ".pw-set",
-          styles: ["fill:#dedede"]
-        }];
-        */
-        var arrStyles = [];
-        if(attr && attr.type==="integer"){
-          arrStyles = createStyleItems(attr);
-        }else if(attr && attr.type==="float"){
-          arrStyles = createStyleItems(attr);
-        }
-
-        var mapped = arrStyles.map(function(d) {
-          return d.name + "{" + d.styles.join(";") + "}";
-        });
-
-        $('head').append('<style id="pw-style" type="text/css">' + mapped.join(" ") + '</style>');
+      }  
+      /*
+      var arrStyles = [{
+        name: ".pw-set",
+        styles: ["fill:#dedede"]
+      }];
+      */
+      var arrStyles = [];
+      if(attr && attr.type==="integer"){
+        arrStyles = createStyleItems(attr);
+      }else if(attr && attr.type==="float"){
+        arrStyles = createStyleItems(attr);
       }
+
+      var mapped = arrStyles.map(function(d) {
+        return d.name + "{" + d.styles.join(";") + "}";
+      });
+
+      $('head').append('<style id="pw-style" type="text/css">' + mapped.join(" ") + '</style>');
+    
     }
 
     function setColorByAttribute(e){
@@ -668,10 +670,10 @@
   ps.controlPanelPercentByTotal = false;
   
   ps.groupSetPadding = 5;
-  ps.setPadding = 10;
+  ps.setPadding = 5;
   
-  ps.minimalSetHeight = 10;
-  ps.minimalSetWidth = null;
+  ps.minimalSetHeight = 5;
+  ps.minimalSetWidth = 10;
   /* X Percent is reserved for the "+Show more Block" */
   ps.showMorePercent = 10; 
   ps.showSubsetTexts = true;
