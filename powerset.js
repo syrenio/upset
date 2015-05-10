@@ -187,12 +187,14 @@
       });
        
       var groupHeights = [];
+      var minHeight = Powerset.minimalSetHeight;
+      var groups = (groupRows.length);
+      var x = (svgHeight - (Powerset.groupSetPadding * groups) - (minHeight * groups)) / allSizes;
       groupRows.forEach(function(set, idx) {
-        var x = (svgHeight - (Powerset.groupSetPadding * (groupRows.length - 1))) / allSizes;
         if(openSets[idx]){
-          groupHeights[idx] = parseFloat((set.data.setSize * x).toFixed(3),10);  
+          groupHeights[idx] = parseFloat((set.data.setSize * x).toFixed(3),10) + minHeight;  
         }else{
-          groupHeights[idx] = Powerset.collapsedHeight;
+          groupHeights[idx] = minHeight;
         }        
       });
 
@@ -206,24 +208,13 @@
         })
         .attr("x", 20)
         .attr("y", function(d, idx) {
-          //var val = (setWidths[idx] * idx) + (10 * idx);
           var prevHeights = groupHeights.filter(function(x,i){return i < idx; });
           var prevHeight = 0;
           if(prevHeights.length > 0){
             prevHeight = prevHeights.reduce(function(r,x){return r+x;});
           }
           prevHeight += (Powerset.groupSetPadding * idx);
-          //var val = groupHeights[idx];
-          return prevHeight; //+ (val % ps.degreeWidth);
-
-          /*
-          var startpoint = 10;
-          var preRows = 0;
-          for (var i = 0; i <= idx - 1; i++) {
-            preRows += (groupHeights[i] * sizeMulti) + groupPadding;
-          }
-          return startpoint + preRows;
-          */
+          return prevHeight;
         })
         .attr("width", ps.degreeWidth)
         .attr("height", function(d, idx) {
@@ -239,10 +230,11 @@
       gTexts.enter()
         .append("text")
         .text(function(d, idx) {
-          return idx; //d.data.elementName;
+          return idx;
         })
         .attr("class", "pw-gtext")
         .attr("x", 5)
+        .attr("dy",".35em")
         .attr("y", function(d, idx) {
           var prevHeights = groupHeights.filter(function(x,i){return i < idx; });
           var prevHeight = 0;
@@ -251,7 +243,7 @@
           }
           prevHeight += (Powerset.groupSetPadding * idx);
           var val = groupHeights[idx];
-          return (val / 2) + prevHeight; //+ (val % ps.degreeWidth);
+          return (val / 2) + prevHeight;
         });
       gTexts.exit().remove();
 
@@ -678,15 +670,13 @@
   ps.groupSetPadding = 5;
   ps.setPadding = 10;
   
-  ps.minimalSetHeight = null;
+  ps.minimalSetHeight = 10;
   ps.minimalSetWidth = null;
   /* X Percent is reserved for the "+Show more Block" */
   ps.showMorePercent = 10; 
   ps.showSubsetTexts = true;
   ps.showSubsetWithoutData = true;
   ps.colorByAttribute = "Times Watched";
-  
-  ps.collapsedHeight = 10;
   
   /* auto define min and max value */
   ps.colorByAttributeValues = {
