@@ -183,7 +183,9 @@
         if(typeof(openSets[idx]) == "undefined"){
           openSets[idx] = true;  
         }
-        allSizes += group.data.setSize;
+        if(openSets[idx]){
+          allSizes += group.data.setSize;  
+        }
       });
        
       var groupHeights = [];
