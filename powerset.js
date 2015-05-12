@@ -25,7 +25,6 @@
     var ctx = c;
     var renderRows = rr;
     var sets = s;
-    var setScale = scale;
 
     var pwDrawInfo = {};
     
@@ -249,7 +248,7 @@
         });
       gTexts.exit().remove();
 
-      drawSubsets(groupRects, setScale);
+      drawSubsets(svg, groupRects);
       drawSetsBySize();
       drawElementsByDegree();
       
@@ -268,7 +267,7 @@
       return stats;
     }
 
-    function drawSubsets(setRects, setScale) {
+    function drawSubsets(svg, setRects) {
 
       svg.selectAll("rect.pw-set").remove();
       svg.selectAll("text.pw-set-text").remove();
@@ -278,90 +277,97 @@
       svg.selectAll(".pw-set-more-text").remove();
       //console.warn(setRects);
       setRects.each(function(d, idx) {
-        var g = d3.select(this);
-        var x = parseInt(g.attr("x"), 10);
-        var y = parseInt(g.attr("y"), 10);
-        var gWidth = parseInt(g.attr("width"), 10);
-        var gHeight = parseInt(g.attr("height"), 10);
+        drawSubset(svg, this, d, idx, true);
+      });
+    }
 
-        var groupSetSize = d.data.setSize;
+    function drawSubset(svg, elm, d, idx, activeMoreBlock){
+      var g = d3.select(elm);
+      var x = parseInt(g.attr("x"), 10);
+      var y = parseInt(g.attr("y"), 10);
+      var gWidth = parseInt(g.attr("width"), 10);
+      var gHeight = parseInt(g.attr("height"), 10);
 
-        // TODO maybe use subsetRows --> more information
-        var subsets = d.data.subSets;
+      var data = d.data || d;
 
-        subsets.sort(function(a,b){
-          return b.setSize - a.setSize;
+      var groupSetSize = data.setSize || 0;
+
+      // TODO maybe use subsetRows --> more information
+      var subsets = data.subSets || [];
+
+      subsets.sort(function(a,b){
+        return b.setSize - a.setSize;
+      });
+
+      if (ps.showSubsetWithoutData) {
+        subsets = subsets.filter(function(d) {
+          return d.setSize > 0;
         });
+      }
 
-        if (ps.showSubsetWithoutData) {
-          subsets = subsets.filter(function(d) {
-            return d.setSize > 0;
-          });
-        }
-
-        var setWidths = [];
-        subsets.forEach(function(set, idx) {
-          var minWidth = Powerset.minimalSetWidth;
-          var lsets = subsets.length;
-          
-          var x = (gWidth - (Powerset.setPadding * (lsets - 1)) - (minWidth * lsets )) / groupSetSize;
-          setWidths[idx] = parseFloat((set.setSize * x).toFixed(3),10) + minWidth;
-        });
-
-        var height = (gHeight);
+      var setWidths = [];
+      subsets.forEach(function(set, idx) {
+        var minWidth = Powerset.minimalSetWidth;
+        var lsets = subsets.length;
         
-        var lastX = null;
-        var lastIdx = null;
+        var x = (gWidth - (Powerset.setPadding * (lsets - 1)) - (minWidth * lsets )) / groupSetSize;
+        setWidths[idx] = parseFloat((set.setSize * x).toFixed(3),10) + minWidth;
+      });
 
-        function getPreviousWidth(idx){
-          var prevWidths = setWidths.filter(function(x,i){return i < idx; });
-          var prevWidth = 0;
-          if(prevWidths.length > 0){
-            prevWidth = prevWidths.reduce(function(r,x){return r+x;});
-          }
-          prevWidth += (Powerset.setPadding * idx);
-          return prevWidth;
+      var height = (gHeight);
+      
+      var lastX = null;
+      var lastIdx = null;
+
+      function getPreviousWidth(idx){
+        var prevWidths = setWidths.filter(function(x,i){return i < idx; });
+        var prevWidth = 0;
+        if(prevWidths.length > 0){
+          prevWidth = prevWidths.reduce(function(r,x){return r+x;});
         }
+        prevWidth += (Powerset.setPadding * idx);
+        return prevWidth;
+      }
 
-        // TODO: insert <g>
-        svg.selectAll("rect.pw-set-" + idx).remove();
-        var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets);
-        subSetRects.enter().append("rect")
-          .attr("class", function(d) {
-            var arrValues = [];
-            
-            for (var i = d.items.length - 1; i >= 0; i--) {
-              var itm = d.items[i];
-              var val = getAttributeValue(Powerset.colorByAttribute, itm);
-              arrValues.push(val);
-            };
-            
-            return "pw-set pw-set-" + idx;
-          })
-          .attr("data-median",function(d){
-            var attr = getAttributeByName(Powerset.colorByAttribute);
-            if (ctx.summaryStatisticVis.length) {
-              var stats = getVisualStats();
-              if(stats){
-                var curRenderRow = getRenderRowById(d.id);
-                var statistics = stats.visObject.statistics[curRenderRow.id];
-                var fixedNumber = attr.type==="float" ? 3 : 0;
-                return statistics.median.toFixed(fixedNumber);
-              }
+      // TODO: insert <g>
+      svg.selectAll("rect.pw-set-" + idx).remove();
+      var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets);
+      subSetRects.enter().append("rect")
+        .attr("class", function(d) {
+          var arrValues = [];
+          
+          for (var i = d.items.length - 1; i >= 0; i--) {
+            var itm = d.items[i];
+            var val = getAttributeValue(Powerset.colorByAttribute, itm);
+            arrValues.push(val);
+          };
+          
+          return "pw-set pw-set-" + idx;
+        })
+        .attr("data-median",function(d){
+          var attr = getAttributeByName(Powerset.colorByAttribute);
+          if (ctx.summaryStatisticVis.length) {
+            var stats = getVisualStats();
+            if(stats){
+              var curRenderRow = getRenderRowById(d.id);
+              var statistics = stats.visObject.statistics[curRenderRow.id];
+              var fixedNumber = attr.type==="float" ? 3 : 0;
+              return statistics.median.toFixed(fixedNumber);
             }
-          })
-          .style({
-            fill: function(d,i){
-              var stats = getVisualStats();
-              if(!stats){
-                return '#'+Math.floor(Math.random()*16777215).toString(16);  
-              }
+          }
+        })
+        .style({
+          fill: function(d,i){
+            var stats = getVisualStats();
+            if(!stats){
+              return '#'+Math.floor(Math.random()*16777215).toString(16);  
             }
-          })
-          .attr("x", function(d, idx) {
-            var prevWidth = getPreviousWidth(idx);
-            var startX = x + prevWidth;
-            
+          }
+        })
+        .attr("x", function(d, idx) {
+          var prevWidth = getPreviousWidth(idx);
+          var startX = x + prevWidth;
+          if(activeMoreBlock){
             var perc = (gWidth * (1 - (Powerset.showMorePercent/100)));
             if(startX >= perc){
               if(lastX === null){
@@ -370,79 +376,85 @@
               }
               return -1000;
             }
-            
-            return startX;
-          })
-          .attr("y", function(d, idx) {
-            var row = 0; 	
-            return y + (row * height);           
-          })
-          .on("click", function(d) {
-            var strNames = d.items.map(getAttributeInfo);
-            console.info(d.elementName, d.setSize, strNames.join(","), d);
-          })
-          .attr("width",function(d,idx){
-            return setWidths[idx];
-          })
-          .attr("height", height);
-        subSetRects.exit().remove();
-
-        /* show more rect */
-        //svg.select("rect.pw-set-more-" + idx).remove();
-        var prevWidth = getPreviousWidth(lastIdx);
-        var nonShownWidhts = setWidths.filter(function(x,i){return i >= lastIdx; });
-        drawShowMoreRect(idx, lastX, y, height, (gWidth-prevWidth), nonShownWidhts.length);
-        
-
-        if (ps.showSubsetTexts) {
+          }
           
-          //workaround foreignObjects
-          svg.selectAll(".pw-set-text-" + idx).remove();
-          //svg.selectAll("foreignObject.pw-set-text-" + idx).remove();
-          var subSetTexts = svg.selectAll("foreignObject.pw-set-text-" + idx).data(subsets).enter();
-          subSetTexts.append("foreignObject")
-            .attr("class", "pw-set-text pw-set-text-" + idx)
-            .attr("x", function(d, idx) {
-              var prevWidth = getPreviousWidth(idx);
-              var startX = x + prevWidth;
+          return startX;
+        })
+        .attr("y", function(d, idx) {
+          var row = 0;  
+          return y + (row * height);           
+        })
+        .on("click", function(d) {
+          var strNames = d.items.map(getAttributeInfo);
+          console.info(d.elementName, d.setSize, strNames.join(","), d);
+        })
+        .attr("width",function(d,idx){
+          return setWidths[idx];
+        })
+        .attr("height", height);
+      subSetRects.exit().remove();
+
+      /* show more rect */
+      //svg.select("rect.pw-set-more-" + idx).remove();
+      var hiddenSets = subsets.filter(function(x,i){return i >= lastIdx; });
+      var prevWidth = getPreviousWidth(lastIdx);
+      var nonShownWidhts = setWidths.filter(function(x,i){return i >= lastIdx; });
+      drawShowMoreRect(idx, lastX, y, height, (gWidth-prevWidth), nonShownWidhts.length, hiddenSets);
+      
+
+      if (ps.showSubsetTexts) {
+        
+        //workaround foreignObjects
+        svg.selectAll(".pw-set-text-" + idx).remove();
+        //svg.selectAll("foreignObject.pw-set-text-" + idx).remove();
+        var subSetTexts = svg.selectAll("foreignObject.pw-set-text-" + idx).data(subsets).enter();
+        subSetTexts.append("foreignObject")
+          .attr("class", "pw-set-text pw-set-text-" + idx)
+          .attr("x", function(d, idx) {
+            var prevWidth = getPreviousWidth(idx);
+            var startX = x + prevWidth;
+            if(activeMoreBlock){
               var perc = (gWidth * (1 - (Powerset.showMorePercent/100)));
               if(startX >= perc ){
                 return -1000;
               }
-              return startX;
-            })
-            .attr("y", function(d, idx) {
-              var row = 0; 	
-              return y + (row * height);
-            })
-            .attr("height",height)
-            .attr("width", function(d,idx){
-              return setWidths[idx];
-            })
-            .attr("text-anchor", "middle")
-            .attr("alignment-baseline", "middle")
-            .append("xhtml:body")
-            .attr("class","pw-set-text-body")
-            .style({
-              "width": function(d,idx){ return setWidths[idx] + "px"; }
-            })
-            .append("p")
-            .on("click", function(d) {
-              var strNames = d.items.map(getAttributeInfo);
-              console.info(d.elementName, d.setSize, strNames.join(","), d);
-            })
-            .attr("class","pw-set-text-center")
-            .text(function(d, i) {
-              return d.elementName;
-            })
-            .attr("title", function(d, i) {
-              return d.elementName;
-            });
-        }
-      });
+            }
+            return startX;
+          })
+          .attr("y", function(d, idx) {
+            var row = 0;  
+            return y + (row * height);
+          })
+          .attr("height",height)
+          .attr("width", function(d,idx){
+            return setWidths[idx];
+          })
+          .attr("text-anchor", "middle")
+          .attr("alignment-baseline", "middle")
+          .append("xhtml:body")
+          .attr("class","pw-set-text-body")
+          .style({
+            "width": function(d,idx){ return setWidths[idx] + "px"; }
+          })
+          .append("p")
+          .on("click", function(d) {
+            var strNames = d.items.map(getAttributeInfo);
+            console.info(d.elementName, d.setSize, strNames.join(","), d);
+          })
+          .attr("class","pw-set-text-center")
+          .text(function(d, i) {
+            return d.elementName;
+          })
+          .attr("title", function(d, i) {
+            return d.elementName;
+          });
+      }
+
     }
-    
-    function drawShowMoreRect(idx, lastX, y, height, width, hiddenSetsCount){
+
+
+
+    function drawShowMoreRect(idx, lastX, y, height, width, hiddenSetsCount, hiddenSets){
       svg.select("rect.pw-set-more-" + idx).remove();
       if(lastX === null){
         return;
@@ -469,7 +481,45 @@
         .append("p")
         .attr("class","pw-set-text-center")
         .text( hiddenSetsCount + " more")
-        .attr("title", hiddenSetsCount + " more");
+        .attr("title", hiddenSetsCount + " more")
+        .on("click", function(d,i){
+          drawShowMoreModal(d,i,hiddenSets)
+        });
+    }
+
+    function drawShowMoreModal(d,idx,hiddenSets){
+      var modal = $("#pw-show-more-modal");
+      if(modal.length > 0){
+        modal.remove();
+      }
+      var bodyVis = $("#bodyVis")
+      bodyVis.append("<div id='pw-show-more-modal'>");
+      bodyVis.css("position","relative");
+
+      /*
+      var rows = d3.select("#pw-show-more-modal").selectAll("div.pw-row-modal").data(hiddenSets);
+      rows.enter()
+        .append("div")
+        .attr("class","pw-row-modal")
+        .text(function(d,i){
+          return d.elementName;
+        });
+      rows.exit().remove();
+      */
+
+      var modalSvg = d3.select("#pw-show-more-modal").append("svg").attr("height",400).attr("width",400);
+      var g = modalSvg.append("rect").attr("x",0).attr("y",0).attr("width",400).attr("height",400).style({"fill":"transparent"});
+      var obj = { subSets : hiddenSets , setSize : 0};
+      //setSize : hiddenSets.length
+      hiddenSets.forEach(function(d){
+        obj.setSize += d.setSize;
+      });
+
+      drawSubset(modalSvg, g[0][0], obj, 9999, false);
+
+      //drawSubset(modalSvg, g, rows, 0);
+
+
     }
     
     function drawSetsBySize(){      
@@ -623,6 +673,8 @@
       $('head').append('<style id="pw-style" type="text/css">' + mapped.join(" ") + '</style>');
     
     }
+
+
 
     function setColorByAttribute(e){
       window.Powerset.colorByAttribute = e.currentTarget.value;

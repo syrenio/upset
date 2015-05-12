@@ -90,3 +90,12 @@ div.ps-control-panel{
 .pw-collapsed{
 	
 }
+
+#pw-show-more-modal{
+	height: 100%;
+	width: 500px;
+	background: #dedede;
+	top: 0;
+	right: 0;
+	position: absolute;
+}
