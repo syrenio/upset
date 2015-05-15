@@ -38,7 +38,7 @@
     $("#bodyVis").prepend("<div id='ps-control-panel' class='ps-control-panel'></div>");
 
     var controlPanel = $("#ps-control-panel");
-    
+
     function getGroupRows() {
       function fnCheck(d) {
         return (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE);
@@ -256,7 +256,15 @@
       createStyle();
       createAttributeSelect();
 
+      cleanupUpsetParts()
+
     };
+
+    function cleanupUpsetParts(){
+      /* clean upset elements */
+      var arrElements = [".columnBackgroundsGroup", ".gRows", ".toolTipLayer", ".logicPanel", ".tableHeaderGroup", ".ui-column.ui-layout-west"];
+      $(arrElements.join(",")).remove();
+    }
 
     function getVisualStats(){
       var stats = ctx.summaryStatisticVis.filter(function(x) {
@@ -561,9 +569,13 @@
       var rows = d3.select("#elm-by-sets-rows").selectAll("div.row").data(subsetRows);
       rows.enter()
         .append("div")
+        .classed({
+          "row": true
+        })
         .html(function(d, idx) {
-          var str = "<input type='checkbox' checked='checked' value='" + idx + "' id='chk-set-size-" + idx + "'>";
-          //str += "<span>" + d.data.elementName + "</span>";
+          var checked = ""; //"checked='checked'"
+          var str = "<input type='checkbox' " + checked + " value='" + idx + "' id='chk-set-size-" + idx + "'>";
+          str += "<span>" + d.data.elementName + "</span>";
           var titleText = d.data.elementName + " - " + (d.data.setSize / totalSize * 100).toFixed(3);
           str += "<progress title='" + titleText + "' value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
           return str;
