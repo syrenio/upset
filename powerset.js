@@ -19,7 +19,7 @@
   // $(".header-container").append("<span> Powerset: <input type='checkbox' checked='checked' onclick='window.Powerset.toggle()'></span>");
 
 
-  var ps = window.Powerset = function PowerSet(c, rr, s, scale) {
+  var ps = window.Powerset = function PowerSet(c, rr, s) {
     var that = this;
     var svg = d3.select("#bodyVis").select("svg");
     var ctx = c;
@@ -524,7 +524,13 @@
     
     function drawSetsBySize(){      
       
-      var subsetRows = getSubsetRows().sort(function(a,b){ return b.data.setSize - a.data.setSize;});
+
+      var subsetRows = getSubsetRows().filter(function(d){
+        return d.data.combinedSets.reduce(function(x,y){ return x+y;}) < 2;
+      }).sort(function(a,b){ 
+        return b.data.setSize - a.data.setSize;
+      });
+      //var subsetRows = sets;
 
       var maxSize = 0;
       var totalSize = 0;

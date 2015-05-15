@@ -23,6 +23,7 @@
 .pw-set{
 	stroke: blue;
 	fill: transparent;
+	stroke-opacity: 0.1;
 }
 
 .pw-set:hover{
