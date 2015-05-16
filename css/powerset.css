@@ -69,9 +69,14 @@ div.ps-control-panel{
 	margin: 5px;
 }
 
+.row > span{
+	font-size: .5em;
+}
+
 .row progress{
-	margin-left: 20px;
-	width: 120px;
+	/*margin-left: 20px;*/
+	width: 100px;
+	float: right;
 }
 
 .pw-set-text-body{
@@ -95,8 +100,11 @@ div.ps-control-panel{
 #pw-show-more-modal{
 	height: 100%;
 	width: 500px;
+}
+/*
 	background: #dedede;
 	top: 0;
 	right: 0;
 	position: absolute;
 }
+*/

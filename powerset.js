@@ -262,7 +262,7 @@
 
     function cleanupUpsetParts(){
       /* clean upset elements */
-      var arrElements = [".columnBackgroundsGroup", ".gRows", ".toolTipLayer", ".logicPanel", ".tableHeaderGroup", ".ui-column.ui-layout-west"];
+      var arrElements = [".columnBackgroundsGroup", ".gRows", ".toolTipLayer", ".logicPanel", ".tableHeaderGroup", ".ui-column.ui-layout-west", "#aboutUpset"];
       $(arrElements.join(",")).remove();
     }
 
@@ -525,6 +525,10 @@
 
       drawSubset(modalSvg, g[0][0], obj, 9999, false);
 
+      $("#pw-show-more-modal").dialog({
+        width: "auto",
+        position: { my: "right", at: "right", of: window }
+      });
       //drawSubset(modalSvg, g, rows, 0);
 
 
