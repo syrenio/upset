@@ -1,3 +1,4 @@
+/* global setIdToSet */
 /* global queryParameters */
 /* global UpSet */
 /* global Powerset */
@@ -8,6 +9,17 @@
 /*
   use renderRows and sets-> Original Data !
 */
+
+Array.prototype.unique = function() {
+    var a = this.concat();
+    for(var i=0; i<a.length; ++i) {
+        for(var j=i+1; j<a.length; ++j) {
+            if(a[i] === a[j])
+                a.splice(j, 1);
+        }
+    }
+    return a;
+};
 
 (function(window) {
 
@@ -29,6 +41,7 @@
     var pwDrawInfo = {};
     
     var openSets = [];
+    var selectedSets = [];
     
     
     window.Powerset.colorByAttribute = setAttributeOrFirstAttribute(window.Powerset.colorByAttribute);
@@ -53,7 +66,6 @@
         return d.data.type === ROW_TYPE.SUBSET;
       });
     }
-    
     
     function setAttributeOrFirstAttribute(name){
       var attrs = getAttributes().filter(function(d,i){return d.name===name;});
@@ -256,14 +268,16 @@
       createStyle();
       createAttributeSelect();
 
-      cleanupUpsetParts()
+      cleanupUpsetParts();
 
     };
 
     function cleanupUpsetParts(){
       /* clean upset elements */
-      var arrElements = [".columnBackgroundsGroup", ".gRows", ".toolTipLayer", ".logicPanel", ".tableHeaderGroup", ".ui-column.ui-layout-west", "#aboutUpset"];
+      var arrElements = [".columnBackgroundsGroup", ".gRows", ".toolTipLayer", ".logicPanel", ".tableHeaderGroup", "#aboutUpset"];
+      var arrHide = [".ui-column.ui-layout-west"];
       $(arrElements.join(",")).remove();
+      $(arrHide.join(",")).hide();
     }
 
     function getVisualStats(){
@@ -314,12 +328,12 @@
       }
 
       var setWidths = [];
+      var minWidth = Powerset.minimalSetWidth;
+      var lsets = subsets.length; 
+      var setwidth = (gWidth - (Powerset.setPadding * (lsets - 1)) /*- (minWidth * lsets ) */) / groupSetSize;
+      console.log("calc set widths: ", gWidth, (Powerset.setPadding * (lsets - 1)), (minWidth * lsets ));
       subsets.forEach(function(set, idx) {
-        var minWidth = Powerset.minimalSetWidth;
-        var lsets = subsets.length;
-        
-        var x = (gWidth - (Powerset.setPadding * (lsets - 1)) - (minWidth * lsets )) / groupSetSize;
-        setWidths[idx] = parseFloat((set.setSize * x).toFixed(3),10) + minWidth;
+        setWidths[idx] = parseFloat((set.setSize * setwidth).toFixed(3),10) + minWidth;
       });
 
       var height = (gHeight);
@@ -367,6 +381,13 @@
         .style({
           fill: function(d,i){
             var stats = getVisualStats();
+            var all = d.items;
+            var matched = getSelectedItems().filter(function(d){
+              return all.indexOf(d) !== -1;
+            });
+            if(all.length === matched.length){
+              return "red";
+            }
             if(!stats){
               return '#'+Math.floor(Math.random()*16777215).toString(16);  
             }
@@ -454,7 +475,7 @@
             return d.elementName;
           })
           .attr("title", function(d, i) {
-            return d.elementName;
+            return d.elementName + " - " + d.setSize + " elements";
           });
       }
 
@@ -504,21 +525,9 @@
       bodyVis.append("<div id='pw-show-more-modal'>");
       bodyVis.css("position","relative");
 
-      /*
-      var rows = d3.select("#pw-show-more-modal").selectAll("div.pw-row-modal").data(hiddenSets);
-      rows.enter()
-        .append("div")
-        .attr("class","pw-row-modal")
-        .text(function(d,i){
-          return d.elementName;
-        });
-      rows.exit().remove();
-      */
-
-      var modalSvg = d3.select("#pw-show-more-modal").append("svg").attr("height",400).attr("width",400);
-      var g = modalSvg.append("rect").attr("x",0).attr("y",0).attr("width",400).attr("height",400).style({"fill":"transparent"});
+      var modalSvg = d3.select("#pw-show-more-modal").append("svg").attr("height",400).attr("width",1000);
+      var g = modalSvg.append("rect").attr("x",0).attr("y",0).attr("height",400).attr("width",1000).style({"fill":"transparent"});
       var obj = { subSets : hiddenSets , setSize : 0};
-      //setSize : hiddenSets.length
       hiddenSets.forEach(function(d){
         obj.setSize += d.setSize;
       });
@@ -526,17 +535,43 @@
       drawSubset(modalSvg, g[0][0], obj, 9999, false);
 
       $("#pw-show-more-modal").dialog({
-        width: "auto",
+        width: "500px",
         position: { my: "right", at: "right", of: window }
       });
-      //drawSubset(modalSvg, g, rows, 0);
-
-
+      
     }
+    
+    function getSelectedSets(){
+      return sets.filter(function(d){ return d.isSelected;});
+    }
+    
+    function getSelectedItems(){
+      var arrselsets = selectedSets.filter(function(d){
+        return d.active;
+      });
+      var arr = [];
+      arrselsets.forEach(function(d,idx){
+        arr = arr.concat(d.baseSet.items);
+      });
+      return arr.unique();
+    }
+    
+    function getBaseSetsBySet(s){
+      var selSets = getSelectedSets();
+      var arr = [];
+      for (var i = 0; i < s.combinedSets.length; i++) {
+        var v = s.combinedSets[i];
+        if(v === 1){
+          arr.push(selSets[i]);
+        }
+      }
+      return arr;
+    }
+    
+    
     
     function drawSetsBySize(){      
       
-
       var subsetRows = getSubsetRows().filter(function(d){
         return d.data.combinedSets.reduce(function(x,y){ return x+y;}) < 2;
       }).sort(function(a,b){ 
@@ -577,14 +612,37 @@
           "row": true
         })
         .html(function(d, idx) {
-          var checked = ""; //"checked='checked'"
-          var str = "<input type='checkbox' " + checked + " value='" + idx + "' id='chk-set-size-" + idx + "'>";
+          //init selectedSets
+          if(typeof(selectedSets[idx]) == "undefined"){
+            selectedSets[idx] = {active:false, baseSet: baseSet};
+          }
+          
+          var checked = selectedSets[idx].active ? "checked='checked'" : "";
+          var arrbaseSet = getBaseSetsBySet(d.data) || {};
+          var baseSet = arrbaseSet.length > 0 ? arrbaseSet[0] : {};
+          var baseSetId = baseSet.id || "";
+          
+          var str = "<input type='checkbox' " + checked + " value='" + idx + "' class='chk-set-size' id='chk-set-size-" + idx + "' data-basesetid='" + baseSetId + "'>";
           str += "<span>" + d.data.elementName + "</span>";
           var titleText = d.data.elementName + " - " + (d.data.setSize / totalSize * 100).toFixed(3);
           str += "<progress title='" + titleText + "' value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
           return str;
         });
       rows.exit().remove();
+      
+      $("input.chk-set-size").on("change",function(){
+        
+        var idx = $(this).val();
+        var baseSetId = $(this).data("basesetid");
+        var baseSet = setIdToSet[baseSetId];
+        console.log("selected base set:", baseSet);
+        console.log("change: ",selectedSets[idx].active," => ", !selectedSets[idx].active);
+        selectedSets[idx].active = !selectedSets[idx].active;
+        selectedSets[idx].baseSet = baseSet;
+        console.log(getSelectedItems());
+        that.draw();
+      });
+      
     }
     
     function drawElementsByDegree() {
@@ -740,7 +798,7 @@
   ps.active = true;
   ps.size = {
     height : 500,
-    width : 500
+    width : 700
   };
   /* show percent in control panel by total size or by max size(largest member) */
   ps.controlPanelPercentByTotal = false;
@@ -749,7 +807,7 @@
   ps.setPadding = 5;
   
   ps.minimalSetHeight = 5;
-  ps.minimalSetWidth = 10;
+  ps.minimalSetWidth = 30;
   /* X Percent is reserved for the "+Show more Block" */
   ps.showMorePercent = 10; 
   ps.showSubsetTexts = true;
