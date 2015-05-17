@@ -1,3 +1,4 @@
+/* global usedSets */
 /* global setIdToSet */
 /* global queryParameters */
 /* global UpSet */
@@ -274,7 +275,7 @@ Array.prototype.unique = function() {
 
     function cleanupUpsetParts(){
       /* clean upset elements */
-      var arrElements = [".columnBackgroundsGroup", ".gRows", ".toolTipLayer", ".logicPanel", ".tableHeaderGroup", "#aboutUpset"];
+      var arrElements = [".columnBackgroundsGroup", ".gRows", ".toolTipLayer", ".logicPanel", ".tableHeaderGroup", "#aboutUpset", "#element-viewers-container", ".element-visualization-header"];
       var arrHide = [".ui-column.ui-layout-west"];
       $(arrElements.join(",")).remove();
       $(arrHide.join(",")).hide();
@@ -557,7 +558,7 @@ Array.prototype.unique = function() {
     }
     
     function getBaseSetsBySet(s){
-      var selSets = getSelectedSets();
+      var selSets = usedSets;
       var arr = [];
       for (var i = 0; i < s.combinedSets.length; i++) {
         var v = s.combinedSets[i];
@@ -641,6 +642,12 @@ Array.prototype.unique = function() {
         selectedSets[idx].baseSet = baseSet;
         console.log(getSelectedItems());
         that.draw();
+        
+        
+        var selection = new Selection(getSelectedItems(), new FilterCollection("#filters-controls", "#filters-list"));
+        selections.addSelection(selection, true);
+        selections.setActive(selection);
+        
       });
       
     }
