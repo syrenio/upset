@@ -293,6 +293,7 @@ Array.prototype.unique = function() {
     function drawSubsets(svg, setRects) {
 
       svg.selectAll("rect.pw-set").remove();
+      svg.selectAll("rect.pw-set-sel").remove();
       svg.selectAll("text.pw-set-text").remove();
       //svg.selectAll("foreignobject.pw-set-text").remove();
       //workaround foreignObjects (foreignObject camelCase not working in webkit)
@@ -352,64 +353,73 @@ Array.prototype.unique = function() {
         return prevWidth;
       }
 
-      // TODO: insert <g>
-      svg.selectAll("rect.pw-set-" + idx).remove();
-      var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets);
-      subSetRects.enter().append("rect")
-        .attr("class", function(d) {
+      function funcDataMedian(d,idx){
+        var attr = getAttributeByName(Powerset.colorByAttribute);
+        if (ctx.summaryStatisticVis.length) {
+          var stats = getVisualStats();
+          if(stats){
+            var curRenderRow = getRenderRowById(d.id);
+            var statistics = stats.visObject.statistics[curRenderRow.id];
+            var fixedNumber = attr.type==="float" ? 3 : 0;
+            return statistics.median.toFixed(fixedNumber);
+          }
+        }
+      }
+
+      function funcSubSetX(d,idx){
+        var prevWidth = getPreviousWidth(idx);
+        var startX = x + prevWidth;
+        if(activeMoreBlock){
+          var perc = (gWidth * (1 - (Powerset.showMorePercent/100)));
+          if(startX >= perc){
+            if(lastX === null){
+              lastX = startX;
+              lastIdx = idx;
+            }
+            return -1000;
+          }
+        }
+        return startX;
+      }
+
+      function funcSetClass(baseStr){
+        return function(d,idx){
           var arrValues = [];
-          
           for (var i = d.items.length - 1; i >= 0; i--) {
             var itm = d.items[i];
             var val = getAttributeValue(Powerset.colorByAttribute, itm);
             arrValues.push(val);
           };
-          
-          return "pw-set pw-set-" + idx;
-        })
-        .attr("data-median",function(d){
-          var attr = getAttributeByName(Powerset.colorByAttribute);
-          if (ctx.summaryStatisticVis.length) {
-            var stats = getVisualStats();
-            if(stats){
-              var curRenderRow = getRenderRowById(d.id);
-              var statistics = stats.visObject.statistics[curRenderRow.id];
-              var fixedNumber = attr.type==="float" ? 3 : 0;
-              return statistics.median.toFixed(fixedNumber);
-            }
-          }
-        })
+          return baseStr+" "+baseStr+"-" + idx;
+        };
+      }
+
+      function getFilteredSelectedItems(items){
+        return getSelectedItems().filter(function(d){
+          return items.indexOf(d) !== -1;
+        });
+      }
+
+      function getSetSelectedPercent(items){
+        var matched = getFilteredSelectedItems(items);
+        return matched.length / items.length;
+      }
+
+      // TODO: insert <g>
+      svg.selectAll("rect.pw-set-" + idx).remove();
+      var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets);
+      subSetRects.enter().append("rect")
+        .attr("class", funcSetClass("pw-set"))
+        .attr("data-median", funcDataMedian)
         .style({
           fill: function(d,i){
             var stats = getVisualStats();
-            var all = d.items;
-            var matched = getSelectedItems().filter(function(d){
-              return all.indexOf(d) !== -1;
-            });
-            if(all.length === matched.length){
-              return "red";
-            }
             if(!stats){
               return '#'+Math.floor(Math.random()*16777215).toString(16);  
             }
           }
         })
-        .attr("x", function(d, idx) {
-          var prevWidth = getPreviousWidth(idx);
-          var startX = x + prevWidth;
-          if(activeMoreBlock){
-            var perc = (gWidth * (1 - (Powerset.showMorePercent/100)));
-            if(startX >= perc){
-              if(lastX === null){
-                lastX = startX;
-                lastIdx = idx;
-              }
-              return -1000;
-            }
-          }
-          
-          return startX;
-        })
+        .attr("x", funcSubSetX)
         .attr("y", function(d, idx) {
           var row = 0;  
           return y + (row * height);           
@@ -430,27 +440,41 @@ Array.prototype.unique = function() {
       var prevWidth = getPreviousWidth(lastIdx);
       var nonShownWidhts = setWidths.filter(function(x,i){return i >= lastIdx; });
       drawShowMoreRect(idx, lastX, y, height, (gWidth-prevWidth), nonShownWidhts.length, hiddenSets);
-      
+
+      if(ps.showSubsetSelection){
+        svg.selectAll("rect.pw-set-sel-" + idx).remove();
+        var subSetSelectionRect = svg.selectAll("rect.pw-set-sel-" + idx).data(subsets);
+        subSetSelectionRect.enter().append("rect")
+            .attr("class", funcSetClass("pw-set-sel"))
+            .attr("data-median", funcDataMedian)
+            .style({
+              fill: "red"
+            })
+            .attr("x", funcSubSetX)
+            .attr("y", function(d, idx) {
+              var row = 0;
+              return y + (row * height);
+            })
+            .on("click", function(d) {
+              var strNames = d.items.map(getAttributeInfo);
+              console.info(d.elementName, d.setSize, strNames.join(","), d);
+            })
+            .attr("width",function(d,idx){
+              var per = getSetSelectedPercent(d.items);
+              return setWidths[idx] * per;
+            })
+            .attr("height", height);
+        subSetSelectionRect.exit().remove();
+      }
 
       if (ps.showSubsetTexts) {
-        
         //workaround foreignObjects
         svg.selectAll(".pw-set-text-" + idx).remove();
         //svg.selectAll("foreignObject.pw-set-text-" + idx).remove();
         var subSetTexts = svg.selectAll("foreignObject.pw-set-text-" + idx).data(subsets).enter();
         subSetTexts.append("foreignObject")
           .attr("class", "pw-set-text pw-set-text-" + idx)
-          .attr("x", function(d, idx) {
-            var prevWidth = getPreviousWidth(idx);
-            var startX = x + prevWidth;
-            if(activeMoreBlock){
-              var perc = (gWidth * (1 - (Powerset.showMorePercent/100)));
-              if(startX >= perc ){
-                return -1000;
-              }
-            }
-            return startX;
-          })
+          .attr("x", funcSubSetX)
           .attr("y", function(d, idx) {
             var row = 0;  
             return y + (row * height);
@@ -568,42 +592,21 @@ Array.prototype.unique = function() {
       }
       return arr;
     }
-    
-    
-    
-    function drawSetsBySize(){      
-      
+
+    function drawSetsBySize(){
       var subsetRows = getSubsetRows().filter(function(d){
         return d.data.combinedSets.reduce(function(x,y){ return x+y;}) < 2;
       }).sort(function(a,b){ 
         return b.data.setSize - a.data.setSize;
       });
-      //var subsetRows = sets;
 
-      var maxSize = 0;
-      var totalSize = 0;
-      var overallSize = 0;
-      totalSize = subsetRows.map(function(d) {
-        return d.data.setSize;
-      }).reduce(function(preVal, val, idx) {
-        return preVal + val;
-      });
-      var arr = subsetRows.map(function(d){
-        return d.data.setSize;
-      });
-      maxSize = Math.max.apply(null,arr);
-      
-      if(Powerset.controlPanelPercentByTotal){
-         overallSize = totalSize;
-      }else{
-        overallSize = maxSize;
-      }
+      var counts = getCountsForProgressbar(subsetRows);
       
       controlPanel.find("#ps-control-panel-sets").remove();
       var setsPanel = controlPanel.append("<div id='ps-control-panel-sets'></div>").find("#ps-control-panel-sets");
       setsPanel.append("<h3>Sets by size");
 
-      setsPanel.append("<div class='elm-by-sets-scale'><span>0</span><span>" + overallSize + "</span></div>");
+      setsPanel.append("<div class='elm-by-sets-scale'><span>0</span><span>" + counts.overallSize + "</span></div>");
       
       setsPanel.append("<div id='elm-by-sets-rows'></div>");
       var rows = d3.select("#elm-by-sets-rows").selectAll("div.row").data(subsetRows);
@@ -625,8 +628,8 @@ Array.prototype.unique = function() {
           
           var str = "<input type='checkbox' " + checked + " value='" + idx + "' class='chk-set-size' id='chk-set-size-" + idx + "' data-basesetid='" + baseSetId + "'>";
           str += "<span>" + d.data.elementName + "</span>";
-          var titleText = d.data.elementName + " - " + (d.data.setSize / totalSize * 100).toFixed(3);
-          str += "<progress title='" + titleText + "' value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
+          var titleText = d.data.elementName + " - " + (d.data.setSize / counts.totalSize * 100).toFixed(3);
+          str += "<progress title='" + titleText + "' value='" + (d.data.setSize / counts.overallSize * 100) + "' max='100'></progress>";
           return str;
         });
       rows.exit().remove();
@@ -642,8 +645,10 @@ Array.prototype.unique = function() {
         selectedSets[idx].baseSet = baseSet;
         console.log(getSelectedItems());
         that.draw();
-        
-        
+
+        if(selections.list.length > 0){
+          selections.removeSelection( selections.list[0]);
+        }
         var selection = new Selection(getSelectedItems(), new FilterCollection("#filters-controls", "#filters-list"));
         selections.addSelection(selection, true);
         selections.setActive(selection);
@@ -651,60 +656,57 @@ Array.prototype.unique = function() {
       });
       
     }
-    
-    function drawElementsByDegree() {
-      var groupRows = getGroupRows();
 
-      var maxSize = 0;
+    function getCountsForProgressbar(groupRows) {
       var totalSize = 0;
       var overallSize = 0;
-      totalSize = groupRows.map(function(d) {
+      totalSize = groupRows.map(function (d) {
         return d.data.setSize;
-      }).reduce(function(preVal, val, idx) {
+      }).reduce(function (preVal, val, idx) {
         return preVal + val;
       });
-      var arr = groupRows.map(function(d){
+      var arr = groupRows.map(function (d) {
         return d.data.setSize;
       });
-      maxSize = Math.max.apply(null,arr);
-      
-      if(Powerset.controlPanelPercentByTotal){
-         overallSize = totalSize;
-      }else{
+      var maxSize = Math.max.apply(null, arr);
+
+      if (Powerset.controlPanelPercentByTotal) {
+        overallSize = totalSize;
+      } else {
         overallSize = maxSize;
       }
+      return {totalSize: totalSize, overallSize: overallSize};
+    }
 
+    function drawElementsByDegree() {
+      var groupRows = getGroupRows();
+      var counts = getCountsForProgressbar(groupRows);
       controlPanel.find("#ps-control-panel-degree").remove();
       var degPanel = controlPanel.append("<div id='ps-control-panel-degree'></div>").find("#ps-control-panel-degree");
-
       degPanel.append("<h3>Elements by Degree");
-
-      degPanel.append("<div class='elm-by-deg-scale'><span>0</span><span>" + overallSize + "</span></div>");
-
+      degPanel.append("<div class='elm-by-deg-scale'><span>0</span><span>" + counts.overallSize + "</span></div>");
       degPanel.append("<div id='elm-by-deg-rows'></div>");
 
       var rows = d3.select("#elm-by-deg-rows").selectAll("div.row").data(groupRows);
-
-
       rows.enter()
-        .append("div")
-        .classed({
-          "row": true
-        })
-        .html(function(d, idx) {
-          var checked = openSets[idx] ? "checked='checked'" : "";
-          
-          var str = "<input type='checkbox' " + checked + " value='" + idx + "' class='chk-set-degree'>";
-          str += "<span>" + idx + "</span>";
-          var titleText = d.data.elementName + " - " + (d.data.setSize / totalSize * 100).toFixed(3);
-          str += "<progress title='" + titleText + "' value='" + (d.data.setSize / overallSize * 100) + "' max='100'></progress>";
-          return str;
-        });
+          .append("div")
+          .classed({
+            "row": true
+          })
+          .html(function (d, idx) {
+            var checked = openSets[idx] ? "checked='checked'" : "";
+
+            var str = "<input type='checkbox' " + checked + " value='" + idx + "' class='chk-set-degree'>";
+            str += "<span>" + idx + "</span>";
+            var titleText = d.data.elementName + " - " + (d.data.setSize / counts.totalSize * 100).toFixed(3);
+            str += "<progress title='" + titleText + "' value='" + (d.data.setSize / counts.overallSize * 100) + "' max='100'></progress>";
+            return str;
+          });
       rows.exit().remove();
 
-      $("input.chk-set-degree").on("change",function(){
+      $("input.chk-set-degree").on("change", function () {
         var idx = $(this).val();
-        console.log("change: ",openSets[idx]," => ", !openSets[idx]);
+        console.log("change: ", openSets[idx], " => ", !openSets[idx]);
         openSets[idx] = !openSets[idx];
         that.draw();
       });
@@ -818,6 +820,7 @@ Array.prototype.unique = function() {
   /* X Percent is reserved for the "+Show more Block" */
   ps.showMorePercent = 10; 
   ps.showSubsetTexts = true;
+  ps.showSubsetSelection = true;
   ps.showSubsetWithoutData = true;
   ps.colorByAttribute = "Times Watched";
   
