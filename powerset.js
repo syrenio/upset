@@ -39,8 +39,6 @@ Array.prototype.unique = function() {
     var renderRows = rr;
     var sets = s;
 
-    var pwDrawInfo = {};
-    
     var openSets = [];
     var selectedSets = [];
     
@@ -57,7 +55,7 @@ Array.prototype.unique = function() {
       function fnCheck(d) {
         return (d.data.type === ROW_TYPE.GROUP || d.data.type === ROW_TYPE.AGGREGATE);
       }
-      return renderRows.filter(function(d, i) {
+      return renderRows.filter(function(d) {
         return fnCheck(d);
       });
     }
@@ -69,51 +67,13 @@ Array.prototype.unique = function() {
     }
     
     function setAttributeOrFirstAttribute(name){
-      var attrs = getAttributes().filter(function(d,i){return d.name===name;});
-      if(attrs && attrs.length > 0){
-        name = attrs[0].name;
+      var fattrs = getAttributes().filter(function(d){return d.name===name;});
+      if(fattrs && fattrs.length > 0){
+        name = fattrs[0].name;
       }else{
         name = getAttributes()[0].name;
       }
       return name;
-    }
-
-    function getGroupNames() {
-      // get array of group names + subsets
-      return groupRows.map(function(o) {
-        var text = o.data.elementName;
-        o.data.subSets.forEach(function(obj) {
-          var setNames = obj.combinedSets.map(function(value, idx) {
-            if (value === 1) {
-              return idx;
-            }
-          });
-          var name = "";
-          setNames.forEach(function(val, idx) {
-            if (val) {
-              name += (name.length > 0 ? " | " : "") + window.sets[val].elementName;
-            }
-          });
-          if (obj.setSize > 0) {
-            text += ":  " + name + "(" + obj.setSize + ")";
-          }
-        });
-        return text;
-      });
-    }
-
-    function printText() {
-      var groupNames = getGroupNames();
-      //  write texts for groupnames
-      var elem = svg.selectAll("text").data(groupNames).enter();
-      elem.append("text")
-        .attr("fill", "red")
-        .attr("y", function(d, idx) {
-          return 20 + (20 * idx);
-        })
-        .text(function(d, idx) {
-          return d;
-        });
     }
 
     function getAttributes() {
@@ -127,7 +87,6 @@ Array.prototype.unique = function() {
       return list;
     }
 
-
     function getAttributeInfo(val) {
 
       var strinfo = "";
@@ -135,7 +94,7 @@ Array.prototype.unique = function() {
       for (var i = arr.length - 1; i >= 0; i--) {
         var attr = arr[i];
         strinfo += attr.name + ":" + attr.values[val] + "  ";
-      };
+      }
       return strinfo;
     }
 
@@ -148,7 +107,7 @@ Array.prototype.unique = function() {
       }
     }
     
-    function getAttributeByName(name, val) {
+    function getAttributeByName(name) {
       for (var i = attributes.length - 1; i >= 0; i--) {
         var attr = attributes[i];
         if (attr.name === name) {
@@ -172,11 +131,8 @@ Array.prototype.unique = function() {
       console.log("called draw " + date);
 
       var groupRows = getGroupRows();
-      var subsetRows = getSubsetRows();
 
-      var visContainer = $(document.getElementById("set-vis-container"));
-
-      
+      //var visContainer = $(document.getElementById("set-vis-container"));
       //svg.attr("height", parseInt(visContainer.height() - 300, 10));
       //svg.attr("width", parseInt(visContainer.width() - 200, 10));
       svg.attr("height",Powerset.size.height);
@@ -282,12 +238,11 @@ Array.prototype.unique = function() {
     }
 
     function getVisualStats(){
-      var stats = ctx.summaryStatisticVis.filter(function(x) {
+      return ctx.summaryStatisticVis.filter(function(x) {
         if (Powerset.colorByAttribute === x.attribute) {
           return x;
         }
       })[0];
-      return stats;
     }
 
     function drawSubsets(svg, setRects) {
@@ -353,7 +308,7 @@ Array.prototype.unique = function() {
         return prevWidth;
       }
 
-      function funcDataMedian(d,idx){
+      function funcDataMedian(d){
         var attr = getAttributeByName(Powerset.colorByAttribute);
         if (ctx.summaryStatisticVis.length) {
           var stats = getVisualStats();
@@ -389,7 +344,7 @@ Array.prototype.unique = function() {
             var itm = d.items[i];
             var val = getAttributeValue(Powerset.colorByAttribute, itm);
             arrValues.push(val);
-          };
+          }
           return baseStr+" "+baseStr+"-" + idx;
         };
       }
@@ -412,7 +367,7 @@ Array.prototype.unique = function() {
         .attr("class", funcSetClass("pw-set"))
         .attr("data-median", funcDataMedian)
         .style({
-          fill: function(d,i){
+          fill: function(){
             var stats = getVisualStats();
             if(!stats){
               return '#'+Math.floor(Math.random()*16777215).toString(16);  
@@ -420,7 +375,7 @@ Array.prototype.unique = function() {
           }
         })
         .attr("x", funcSubSetX)
-        .attr("y", function(d, idx) {
+        .attr("y", function() {
           var row = 0;  
           return y + (row * height);           
         })
@@ -451,7 +406,7 @@ Array.prototype.unique = function() {
               fill: "red"
             })
             .attr("x", funcSubSetX)
-            .attr("y", function(d, idx) {
+            .attr("y", function() {
               var row = 0;
               return y + (row * height);
             })
@@ -475,7 +430,7 @@ Array.prototype.unique = function() {
         subSetTexts.append("foreignObject")
           .attr("class", "pw-set-text pw-set-text-" + idx)
           .attr("x", funcSubSetX)
-          .attr("y", function(d, idx) {
+          .attr("y", function() {
             var row = 0;  
             return y + (row * height);
           })
@@ -496,10 +451,10 @@ Array.prototype.unique = function() {
             console.info(d.elementName, d.setSize, strNames.join(","), d);
           })
           .attr("class","pw-set-text-center")
-          .text(function(d, i) {
+          .text(function(d) {
             return d.elementName;
           })
-          .attr("title", function(d, i) {
+          .attr("title", function(d) {
             return d.elementName + " - " + d.setSize + " elements";
           });
       }
@@ -536,12 +491,12 @@ Array.prototype.unique = function() {
         .attr("class","pw-set-text-center")
         .text( hiddenSetsCount + " more")
         .attr("title", hiddenSetsCount + " more")
-        .on("click", function(d,i){
-          drawShowMoreModal(d,i,hiddenSets)
+        .on("click", function(){
+          drawShowMoreModal(hiddenSets)
         });
     }
 
-    function drawShowMoreModal(d,idx,hiddenSets){
+    function drawShowMoreModal(hiddenSets){
       var modal = $("#pw-show-more-modal");
       if(modal.length > 0){
         modal.remove();
@@ -658,9 +613,8 @@ Array.prototype.unique = function() {
     }
 
     function getCountsForProgressbar(groupRows) {
-      var totalSize = 0;
       var overallSize = 0;
-      totalSize = groupRows.map(function (d) {
+      var totalSize = groupRows.map(function (d) {
         return d.data.setSize;
       }).reduce(function (preVal, val, idx) {
         return preVal + val;
@@ -720,7 +674,7 @@ Array.prototype.unique = function() {
       var arr = [];
       
       var subsetRects = svg.selectAll("rect.pw-set");
-      subsetRects.each(function(d,i) {
+      subsetRects.each(function() {
         var rect = $(this);
         var median = rect.data("median");
         var hexColor = colorScale(median);
@@ -733,7 +687,7 @@ Array.prototype.unique = function() {
     }
 
     function createStyle() {
-      var attr = getAttributes().filter(function(d,i){ return d.name===window.Powerset.colorByAttribute;})[0];
+      var attr = getAttributes().filter(function(d){ return d.name===window.Powerset.colorByAttribute;})[0];
       if(!attr){
         attr = getAttributes()[0];
       }
