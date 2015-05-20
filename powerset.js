@@ -139,7 +139,7 @@ Array.prototype.unique = function() {
       svg.attr("width",Powerset.size.width);
       var svgWidth = parseInt(svg.attr("width"), 10);
       var svgHeight = parseInt(svg.attr("height"), 10);
-      ps.degreeWidth = svgWidth - 30;
+      var rectsWidth = svgWidth - 30;
 
       console.log("svgHeight",svgHeight);
       console.log("svgWidth",svgWidth);
@@ -186,7 +186,7 @@ Array.prototype.unique = function() {
           prevHeight += (Powerset.groupSetPadding * idx);
           return prevHeight;
         })
-        .attr("width", ps.degreeWidth)
+        .attr("width", rectsWidth)
         .attr("height", function(d, idx) {
           return groupHeights[idx];
         })
@@ -217,7 +217,7 @@ Array.prototype.unique = function() {
         });
       gTexts.exit().remove();
 
-      drawSubsets(svg, groupRects);
+      drawSubsets(svg, groupRects, rectsWidth);
       drawSetsBySize();
       drawElementsByDegree();
       
@@ -245,7 +245,7 @@ Array.prototype.unique = function() {
       })[0];
     }
 
-    function drawSubsets(svg, setRects) {
+    function drawSubsets(svg, setRects, rectsWidth) {
 
       svg.selectAll("rect.pw-set").remove();
       svg.selectAll("rect.pw-set-sel").remove();
@@ -253,18 +253,19 @@ Array.prototype.unique = function() {
       //svg.selectAll("foreignobject.pw-set-text").remove();
       //workaround foreignObjects (foreignObject camelCase not working in webkit)
       svg.selectAll(".pw-set-text").remove();
+      svg.selectAll(".pw-set-more").remove();
       svg.selectAll(".pw-set-more-text").remove();
       //console.warn(setRects);
       setRects.each(function(d, idx) {
-        drawSubset(svg, this, d, idx, true);
+        drawSubset(svg, rectsWidth, this, d, idx, true);
       });
     }
 
-    function drawSubset(svg, elm, d, idx, activeMoreBlock){
+    function drawSubset(svg, rectsWidth, elm, d, idx, activeMoreBlock){
       var g = d3.select(elm);
       var x = parseInt(g.attr("x"), 10);
       var y = parseInt(g.attr("y"), 10);
-      var gWidth = parseInt(g.attr("width"), 10);
+      var gWidth = rectsWidth;
       var gHeight = parseInt(g.attr("height"), 10);
 
       var data = d.data || d;
@@ -284,13 +285,16 @@ Array.prototype.unique = function() {
         });
       }
 
+
+      // TODO: calc width and the sets that will be displayed and add minWdith for them.
       var setWidths = [];
       var minWidth = Powerset.minimalSetWidth;
       var lsets = subsets.length; 
       var setwidth = (gWidth - (Powerset.setPadding * (lsets - 1)) /*- (minWidth * lsets ) */) / groupSetSize;
       console.log("calc set widths: ", gWidth, (Powerset.setPadding * (lsets - 1)), (minWidth * lsets ));
       subsets.forEach(function(set, idx) {
-        setWidths[idx] = parseFloat((set.setSize * setwidth).toFixed(3),10) + minWidth;
+        var w = parseFloat((set.setSize * setwidth).toFixed(3),10);
+        setWidths[idx] = w < minWidth ? w + minWidth : w; //+ minWidth;
       });
 
       var height = (gHeight);
@@ -321,15 +325,15 @@ Array.prototype.unique = function() {
         }
       }
 
-      function funcSubSetX(d,idx){
-        var prevWidth = getPreviousWidth(idx);
+      function funcSubSetX(d,i){
+        var prevWidth = getPreviousWidth(i);
         var startX = x + prevWidth;
         if(activeMoreBlock){
           var perc = (gWidth * (1 - (Powerset.showMorePercent/100)));
           if(startX >= perc){
             if(lastX === null){
               lastX = startX;
-              lastIdx = idx;
+              lastIdx = i;
             }
             return -1000;
           }
@@ -338,7 +342,7 @@ Array.prototype.unique = function() {
       }
 
       function funcSetClass(baseStr){
-        return function(d,idx){
+        return function(d,k){
           var arrValues = [];
           for (var i = d.items.length - 1; i >= 0; i--) {
             var itm = d.items[i];
@@ -361,6 +365,8 @@ Array.prototype.unique = function() {
       }
 
       // TODO: insert <g>
+      console.info("row:",idx,subsets.length,subsets);
+
       svg.selectAll("rect.pw-set-" + idx).remove();
       var subSetRects = svg.selectAll("rect.pw-set-" + idx).data(subsets);
       subSetRects.enter().append("rect")
@@ -370,7 +376,7 @@ Array.prototype.unique = function() {
           fill: function(){
             var stats = getVisualStats();
             if(!stats){
-              return '#'+Math.floor(Math.random()*16777215).toString(16);  
+              return '#dedede';
             }
           }
         })
@@ -390,11 +396,11 @@ Array.prototype.unique = function() {
       subSetRects.exit().remove();
 
       /* show more rect */
-      //svg.select("rect.pw-set-more-" + idx).remove();
+      svg.select("rect.pw-set-more-" + idx).remove();
       var hiddenSets = subsets.filter(function(x,i){return i >= lastIdx; });
       var prevWidth = getPreviousWidth(lastIdx);
-      var nonShownWidhts = setWidths.filter(function(x,i){return i >= lastIdx; });
-      drawShowMoreRect(idx, lastX, y, height, (gWidth-prevWidth), nonShownWidhts.length, hiddenSets);
+      var nonShownWidths = setWidths.filter(function(x,i){return i >= lastIdx; });
+      drawShowMoreRect(idx, lastX, y, height, (gWidth-prevWidth), nonShownWidths.length, hiddenSets);
 
       if(ps.showSubsetSelection){
         svg.selectAll("rect.pw-set-sel-" + idx).remove();
@@ -425,7 +431,6 @@ Array.prototype.unique = function() {
       if (ps.showSubsetTexts) {
         //workaround foreignObjects
         svg.selectAll(".pw-set-text-" + idx).remove();
-        //svg.selectAll("foreignObject.pw-set-text-" + idx).remove();
         var subSetTexts = svg.selectAll("foreignObject.pw-set-text-" + idx).data(subsets).enter();
         subSetTexts.append("foreignObject")
           .attr("class", "pw-set-text pw-set-text-" + idx)
@@ -451,8 +456,8 @@ Array.prototype.unique = function() {
             console.info(d.elementName, d.setSize, strNames.join(","), d);
           })
           .attr("class","pw-set-text-center")
-          .text(function(d) {
-            return d.elementName;
+          .html(function(d) {
+            return d.elementName || "&nbsp;";
           })
           .attr("title", function(d) {
             return d.elementName + " - " + d.setSize + " elements";
@@ -460,8 +465,6 @@ Array.prototype.unique = function() {
       }
 
     }
-
-
 
     function drawShowMoreRect(idx, lastX, y, height, width, hiddenSetsCount, hiddenSets){
       svg.select("rect.pw-set-more-" + idx).remove();
@@ -505,14 +508,14 @@ Array.prototype.unique = function() {
       bodyVis.append("<div id='pw-show-more-modal'>");
       bodyVis.css("position","relative");
 
-      var modalSvg = d3.select("#pw-show-more-modal").append("svg").attr("height",400).attr("width",1000);
-      var g = modalSvg.append("rect").attr("x",0).attr("y",0).attr("height",400).attr("width",1000).style({"fill":"transparent"});
+      var modalSvg = d3.select("#pw-show-more-modal").append("svg").attr("height",200).attr("width",500);
+      var g = modalSvg.append("rect").attr("x",0).attr("y",0).attr("height",200).attr("width",500).style({"fill":"transparent"});
       var obj = { subSets : hiddenSets , setSize : 0};
       hiddenSets.forEach(function(d){
         obj.setSize += d.setSize;
       });
 
-      drawSubset(modalSvg, g[0][0], obj, 9999, false);
+      drawSubset(modalSvg, 400, g[0][0], obj, 9999, false);
 
       $("#pw-show-more-modal").dialog({
         width: "500px",
@@ -530,7 +533,7 @@ Array.prototype.unique = function() {
         return d.active;
       });
       var arr = [];
-      arrselsets.forEach(function(d,idx){
+      arrselsets.forEach(function(d){
         arr = arr.concat(d.baseSet.items);
       });
       return arr.unique();
@@ -548,11 +551,29 @@ Array.prototype.unique = function() {
       return arr;
     }
 
+    function getCountsForProgressbar(groupRows) {
+      var overallSize = 0;
+      var totalSize = groupRows.map(function (d) {
+        return d.setSize;
+      }).reduce(function (preVal, val) {
+        return preVal + val;
+      });
+      var arr = groupRows.map(function (d) {
+        return d.setSize;
+      });
+      var maxSize = Math.max.apply(null, arr);
+
+      if (Powerset.controlPanelPercentByTotal) {
+        overallSize = totalSize;
+      } else {
+        overallSize = maxSize;
+      }
+      return {totalSize: totalSize, overallSize: overallSize};
+    }
+
     function drawSetsBySize(){
-      var subsetRows = getSubsetRows().filter(function(d){
-        return d.data.combinedSets.reduce(function(x,y){ return x+y;}) < 2;
-      }).sort(function(a,b){ 
-        return b.data.setSize - a.data.setSize;
+      var subsetRows = usedSets.sort(function(a,b){
+        return b.setSize - a.setSize;
       });
 
       var counts = getCountsForProgressbar(subsetRows);
@@ -573,18 +594,18 @@ Array.prototype.unique = function() {
         .html(function(d, idx) {
           //init selectedSets
           if(typeof(selectedSets[idx]) == "undefined"){
-            selectedSets[idx] = {active:false, baseSet: baseSet};
+            selectedSets[idx] = {active:false, baseSet: d};
           }
           
           var checked = selectedSets[idx].active ? "checked='checked'" : "";
-          var arrbaseSet = getBaseSetsBySet(d.data) || {};
-          var baseSet = arrbaseSet.length > 0 ? arrbaseSet[0] : {};
-          var baseSetId = baseSet.id || "";
+          //var arrbaseSet = getBaseSetsBySet(d) || {};
+          //var baseSet = arrbaseSet.length > 0 ? arrbaseSet[0] : {};
+          //var baseSetId = baseSet.id || "";
           
-          var str = "<input type='checkbox' " + checked + " value='" + idx + "' class='chk-set-size' id='chk-set-size-" + idx + "' data-basesetid='" + baseSetId + "'>";
-          str += "<span>" + d.data.elementName + "</span>";
-          var titleText = d.data.elementName + " - " + (d.data.setSize / counts.totalSize * 100).toFixed(3);
-          str += "<progress title='" + titleText + "' value='" + (d.data.setSize / counts.overallSize * 100) + "' max='100'></progress>";
+          var str = "<input type='checkbox' " + checked + " value='" + idx + "' class='chk-set-size' id='chk-set-size-" + idx + "' data-basesetid='" + d.id + "'>";
+          str += "<span>" + d.elementName + "</span>";
+          var titleText = d.elementName + " - " + (d.setSize / counts.totalSize * 100).toFixed(3);
+          str += "<progress title='" + titleText + "' value='" + (d.setSize / counts.overallSize * 100) + "' max='100'></progress>";
           return str;
         });
       rows.exit().remove();
@@ -612,28 +633,11 @@ Array.prototype.unique = function() {
       
     }
 
-    function getCountsForProgressbar(groupRows) {
-      var overallSize = 0;
-      var totalSize = groupRows.map(function (d) {
-        return d.data.setSize;
-      }).reduce(function (preVal, val, idx) {
-        return preVal + val;
-      });
-      var arr = groupRows.map(function (d) {
-        return d.data.setSize;
-      });
-      var maxSize = Math.max.apply(null, arr);
-
-      if (Powerset.controlPanelPercentByTotal) {
-        overallSize = totalSize;
-      } else {
-        overallSize = maxSize;
-      }
-      return {totalSize: totalSize, overallSize: overallSize};
-    }
-
     function drawElementsByDegree() {
       var groupRows = getGroupRows();
+      groupRows = groupRows.map(function(d){
+        return d.data;
+      });
       var counts = getCountsForProgressbar(groupRows);
       controlPanel.find("#ps-control-panel-degree").remove();
       var degPanel = controlPanel.append("<div id='ps-control-panel-degree'></div>").find("#ps-control-panel-degree");
@@ -652,8 +656,8 @@ Array.prototype.unique = function() {
 
             var str = "<input type='checkbox' " + checked + " value='" + idx + "' class='chk-set-degree'>";
             str += "<span>" + idx + "</span>";
-            var titleText = d.data.elementName + " - " + (d.data.setSize / counts.totalSize * 100).toFixed(3);
-            str += "<progress title='" + titleText + "' value='" + (d.data.setSize / counts.overallSize * 100) + "' max='100'></progress>";
+            var titleText = d.elementName + " - " + (d.setSize / counts.totalSize * 100).toFixed(3);
+            str += "<progress title='" + titleText + "' value='" + (d.setSize / counts.overallSize * 100) + "' max='100'></progress>";
             return str;
           });
       rows.exit().remove();
@@ -744,7 +748,7 @@ Array.prototype.unique = function() {
           var x = arr[i];
           var selected = Powerset.colorByAttribute === x.name;
           builder.push("<option value='" + x.name + "' + selected='" + selected + "'>" + x.name + " </option>");
-        };
+        }
         builder.push("</select>");
         builder.push("</span>");
         $(".header-container").append(builder.join(""));
